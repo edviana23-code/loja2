@@ -1,1 +1,3018 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loja de Tecidos — Sistema de Gestão</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+<style>
+/* ── TOKENS ─────────────────────────────────────────── */
+:root,[data-theme="light"]{
+  --bg:#f5f2ee;--surface:#fff;--s2:#f0ece6;--s3:#e8e3dc;
+  --border:rgba(0,0,0,.09);--div:rgba(0,0,0,.06);
+  --text:#1a1714;--muted:#6b6560;--faint:#b0afa9;
+  --accent:#2c5f8a;--accent-h:#235078;--accent-hl:#e8f0f8;
+  --green:#1e7a4a;--green-hl:#e6f4ec;
+  --red:#b83232;--red-hl:#fceaea;
+  --amber:#8a5f00;--amber-hl:#fdf3dc;
+  --teal:#01696f;--teal-h:#0c4e54;--teal-hl:#d4e8e6;
+  --blue:#0063a0;--blue-hl:#e0f0f8;
+  --shadow:0 1px 3px rgba(0,0,0,.07);
+  --shadow-md:0 4px 14px rgba(0,0,0,.09);
+  --shadow-lg:0 14px 36px rgba(0,0,0,.13);
+  --r:.375rem;--rm:.5rem;--rl:.75rem;--rx:1rem;
+}
+[data-theme="dark"]{
+  --bg:#141312;--surface:#1d1c1a;--s2:#242320;--s3:#2c2b29;
+  --border:rgba(255,255,255,.08);--div:rgba(255,255,255,.05);
+  --text:#d2d1ce;--muted:#78776f;--faint:#46453f;
+  --accent:#5a9fd4;--accent-h:#4a8fc4;--accent-hl:#1a3050;
+  --green:#6aaa40;--green-hl:#192610;
+  --red:#e06060;--red-hl:#2a1010;
+  --amber:#e0a030;--amber-hl:#2a2008;
+  --teal:#4fa0ab;--teal-h:#227f8b;--teal-hl:#1c3638;
+  --blue:#5599cc;--blue-hl:#102638;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{cursor:pointer;border:none;background:none;font:inherit;color:inherit}
+input,select,textarea{font:inherit;color:inherit}
+table{border-collapse:collapse;width:100%}
 
+/* ── LAYOUT ─────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:48px 1fr;min-height:100dvh}
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:.75rem;padding:0 1.25rem;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:var(--shadow)}
+.logo{display:flex;align-items:center;gap:.5rem;font-family:'DM Serif Display',serif;font-size:1rem;color:var(--accent)}
+.topbar-mid{flex:1;display:flex;align-items:center;gap:.5rem}
+.topbar-actions{display:flex;align-items:center;gap:.4rem}
+.sync-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.68rem;padding:.2rem .55rem;border-radius:99px;font-weight:600}
+.sync-ok{background:var(--green-hl);color:var(--green)}
+.sync-off{background:var(--amber-hl);color:var(--amber)}
+.sync-loading{background:var(--blue-hl);color:var(--blue)}
+.sync-err{background:var(--red-hl);color:var(--red)}
+
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:.75rem .6rem;display:flex;flex-direction:column;gap:.15rem;height:calc(100vh - 48px);position:sticky;top:48px;overflow-y:auto}
+.nav-sec{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);padding:.6rem .65rem .2rem;margin-top:.1rem}
+.nav-item{display:flex;align-items:center;gap:.5rem;padding:.48rem .65rem;border-radius:var(--rm);font-size:.85rem;font-weight:500;color:var(--muted);transition:all .15s;width:100%;text-align:left;border:none;background:none;cursor:pointer}
+.nav-item:hover{background:var(--s2);color:var(--text)}
+.nav-item.active{background:var(--accent-hl);color:var(--accent);font-weight:600}
+.nav-item svg{width:13px;height:13px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--accent);color:#fff;font-size:.6rem;font-weight:800;padding:.08rem .35rem;border-radius:99px;min-width:16px;text-align:center;display:none}
+.nav-badge.warn{background:var(--amber)}
+.nav-badge.show{display:block}
+.conn-row{padding:.7rem .65rem;border-top:1px solid var(--border);display:flex;align-items:center;gap:.5rem;margin-top:auto}
+.conn-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--amber)}
+.conn-dot.ok{background:var(--green)}
+.conn-label{font-size:.68rem;color:var(--muted)}
+
+.main{overflow-y:auto;padding:1.25rem;min-height:0}
+.view{display:none}.view.active{display:block}
+
+/* ── BUTTONS ─────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .9rem;border-radius:var(--rm);font-size:.85rem;font-weight:600;transition:all .15s;white-space:nowrap;border:1px solid transparent}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn-primary:hover{background:var(--accent-h)}
+.btn-teal{background:var(--teal);color:#fff;border-color:var(--teal)}.btn-teal:hover{background:var(--teal-h)}
+.btn-outline{background:var(--surface);border-color:var(--border);color:var(--text)}.btn-outline:hover{background:var(--s2)}
+.btn-danger{background:var(--red-hl);color:var(--red);border-color:rgba(184,50,50,.15)}.btn-danger:hover{filter:brightness(.95)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{filter:brightness(.92)}
+.btn-sm{padding:.28rem .6rem;font-size:.72rem}
+.btn-icon{padding:.35rem;border-radius:var(--rm);color:var(--muted)}.btn-icon:hover{background:var(--s2);color:var(--text)}
+
+/* ── PAGE HEADER ─────────────────────────────────────── */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem;gap:.75rem;flex-wrap:wrap}
+.ph-title{font-size:1.15rem;font-weight:700;letter-spacing:-.02em}
+.ph-sub{font-size:.8rem;color:var(--muted);margin-top:.1rem}
+
+/* ── KPIs ─────────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:.65rem;margin-bottom:1.25rem}
+.kpi{padding:.9rem 1rem;border-radius:var(--rl);border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow)}
+.kpi-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.055em;color:var(--muted);margin-bottom:.25rem}
+.kpi-val{font-size:1.3rem;font-weight:700;font-family:'DM Sans',monospace;letter-spacing:-.01em}
+.kpi-sub{font-size:.67rem;color:var(--muted);margin-top:.12rem}
+.kpi.g{border-color:rgba(30,122,74,.2);background:var(--green-hl)}.kpi.g .kpi-val{color:var(--green)}
+.kpi.r{border-color:rgba(184,50,50,.2);background:var(--red-hl)}.kpi.r .kpi-val{color:var(--red)}
+.kpi.w{border-color:rgba(138,95,0,.2);background:var(--amber-hl)}.kpi.w .kpi-val{color:var(--amber)}
+.kpi.b{border-color:rgba(0,99,160,.2);background:var(--blue-hl)}.kpi.b .kpi-val{color:var(--blue)}
+.kpi.a{border-color:rgba(44,95,138,.2);background:var(--accent-hl)}.kpi.a .kpi-val{color:var(--accent)}
+.kpi.t{border-color:rgba(1,105,111,.2);background:var(--teal-hl)}.kpi.t .kpi-val{color:var(--teal)}
+
+/* ── CARDS ─────────────────────────────────────────────── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1rem 1.1rem;margin-bottom:.75rem;box-shadow:var(--shadow)}
+.card-title{font-size:.73rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+
+/* ── TABLE ─────────────────────────────────────────────── */
+.tw{overflow-x:auto;border-radius:var(--rl);border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow)}
+.tbl{font-size:.85rem}
+.tbl th{background:var(--s2);color:var(--muted);font-weight:700;font-size:.7rem;text-transform:uppercase;letter-spacing:.045em;padding:.6rem .8rem;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:.6rem .8rem;border-bottom:1px solid var(--div);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tbody tr{transition:background .12s}.tbl tbody tr:hover{background:var(--s2)}
+.tbl .tr-r{text-align:right}
+.empty-r td{text-align:center;color:var(--faint);padding:2rem;font-style:italic;font-size:.8rem}
+
+/* ── PILLS / BADGES ──────────────────────────────────── */
+.pill{display:inline-flex;align-items:center;gap:.22rem;font-size:.7rem;font-weight:700;padding:.18rem .48rem;border-radius:99px;letter-spacing:.02em;white-space:nowrap}
+.pill::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+.p-pend{background:var(--amber-hl);color:var(--amber)}
+.p-pago{background:var(--green-hl);color:var(--green)}
+.p-venc{background:var(--red-hl);color:var(--red)}
+.p-bord{background:var(--blue-hl);color:var(--blue)}
+.p-comp{background:var(--teal-hl);color:var(--teal)}
+.badge{display:inline-block;padding:.18rem .5rem;border-radius:99px;font-size:.65rem;font-weight:600}
+.chip{display:inline-block;background:var(--s2);border:1px solid var(--border);border-radius:99px;padding:.1rem .45rem;font-size:.72rem;font-weight:600;color:var(--muted)}
+.fw7{font-weight:700}.mono{font-family:monospace;font-size:.8rem}.tc{color:var(--muted)}
+
+/* ── FORMS ─────────────────────────────────────────────── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:.65rem}
+.fg{display:flex;flex-direction:column;gap:.28rem}
+.fg label{font-size:.74rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.fg input,.fg select,.fg textarea{background:var(--surface);border:1px solid var(--border);border-radius:var(--rm);padding:.5rem .75rem;font-size:.85rem;transition:border .12s;width:100%}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-hl)}
+.form-actions{display:flex;justify-content:flex-end;gap:.4rem;padding-top:.8rem;border-top:1px solid var(--div);margin-top:.5rem}
+
+/* ── ITEM ROWS ─────────────────────────────────────────── */
+.item-header{display:grid;grid-template-columns:2.5fr 1fr 1fr 36px;gap:8px;padding:0 0 6px;border-bottom:1px solid var(--div);margin-bottom:6px}
+.item-header span{font-size:.63rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.item-row{display:grid;grid-template-columns:2.5fr 1fr 1fr 36px;gap:8px;margin-bottom:6px;align-items:center}
+.item-row input{padding:.42rem .55rem;border:1px solid var(--border);border-radius:var(--rm);font-size:.775rem;width:100%;background:var(--surface)}
+.remove-btn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);background:var(--s2);color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px}
+.remove-btn:hover{background:var(--red-hl);color:var(--red);border-color:var(--red)}
+.add-item-btn{font-size:.72rem;color:var(--accent);background:none;border:none;cursor:pointer;padding:.25rem 0;font-family:inherit}
+.total-box{display:flex;justify-content:flex-end;gap:.75rem;align-items:baseline;padding:1rem 0 0;border-top:2px solid var(--border);margin-top:.5rem}
+.total-label{font-size:.85rem;color:var(--muted);font-weight:500}
+.total-val{font-size:1.5rem;font-weight:700;color:var(--accent)}
+
+/* ── PAYMENT MIXED ─────────────────────────────────────── */
+.pag-section{background:var(--s2);border-radius:var(--rm);padding:1rem;margin-top:1rem;border:1px solid var(--border)}
+.pag-title{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:.75rem}
+.formas-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:.75rem}
+.forma-card{border:2px solid var(--border);border-radius:var(--rm);padding:.6rem 4px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface)}
+.forma-card:hover{border-color:var(--accent)}
+.forma-card.sel{border-color:var(--accent);background:var(--accent-hl)}
+.forma-card .fi{font-size:18px;margin-bottom:3px}
+.forma-card .fn{font-size:.65rem;font-weight:600}
+.forma-rows{display:flex;flex-direction:column;gap:6px}
+.forma-row{display:grid;grid-template-columns:110px 1fr 90px;gap:6px;align-items:center}
+.forma-row label{font-size:.75rem;font-weight:600}
+.forma-row input{padding:.42rem .55rem;border:1px solid var(--border);border-radius:var(--rm);font-size:.775rem;background:var(--surface)}
+.resta{font-size:.68rem;text-align:right}.resta.ok{color:var(--green)}.resta.err{color:var(--red)}
+
+/* ── BORDERÔ BAR ─────────────────────────────────────── */
+.bord-bar{position:fixed;bottom:1.25rem;right:1.25rem;z-index:150;background:var(--teal);color:#fff;border-radius:var(--rx);padding:.7rem 1rem;display:flex;align-items:center;gap:.6rem;box-shadow:var(--shadow-lg);font-size:.775rem;font-weight:600;transform:translateY(110px);transition:transform .35s cubic-bezier(.16,1,.3,1);min-width:200px}
+.bord-bar.visible{transform:none}
+.bord-cnt{background:rgba(255,255,255,.22);border-radius:99px;padding:.08rem .4rem;font-weight:800;font-size:.8rem}
+.bord-val{margin-left:auto;font-size:.85rem}
+
+/* ── MODALS ─────────────────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border-radius:var(--rx);padding:1.4rem;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:translateY(10px) scale(.98);transition:transform .22s}
+.overlay.open .modal{transform:none}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.15rem}
+.modal-title{font-size:.95rem;font-weight:700;letter-spacing:-.01em}
+.modal-foot{display:flex;justify-content:flex-end;gap:.4rem;margin-top:1.25rem;padding-top:.9rem;border-top:1px solid var(--div)}
+
+/* ── RECIBO ─────────────────────────────────────────────── */
+.recibo{font-family:'DM Sans',sans-serif}
+.recibo-hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--teal);padding-bottom:.9rem;margin-bottom:1rem}
+.recibo-title{font-size:1rem;font-weight:800;color:var(--teal)}
+.recibo-num{font-size:.72rem;color:var(--muted);margin-top:.12rem}
+.recibo-meta{display:grid;grid-template-columns:1fr 1fr;gap:.35rem;font-size:.75rem;margin-bottom:.9rem}
+.recibo-meta span{font-weight:700}
+.recibo-tbl{width:100%;border-collapse:collapse;font-size:.72rem;margin-bottom:.9rem}
+.recibo-tbl th{background:var(--teal);color:#fff;padding:.42rem .65rem;text-align:left;font-size:.63rem;font-weight:700;text-transform:uppercase}
+.recibo-tbl td{padding:.42rem .65rem;border-bottom:1px solid var(--div)}
+.recibo-tbl tr:last-child td{border-bottom:none}
+.recibo-total{display:flex;justify-content:flex-end;margin-bottom:.75rem}
+.recibo-total-box{background:var(--teal);color:#fff;padding:.6rem 1rem;border-radius:var(--rm);font-size:1rem;font-weight:700}
+.recibo-assin{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;margin-top:1.75rem}
+.assin-linha{border-top:1px solid var(--border);padding-top:.35rem;font-size:.67rem;color:var(--muted);text-align:center}
+
+/* ── TOAST ─────────────────────────────────────────────── */
+.toast-wrap{position:fixed;top:.9rem;right:.9rem;z-index:300;display:flex;flex-direction:column;gap:.35rem;pointer-events:none}
+.toast-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:.55rem .9rem;font-size:.74rem;font-weight:500;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:.4rem;opacity:0;transform:translateX(36px);animation:toastIn .28s forwards}
+@keyframes toastIn{to{opacity:1;transform:none}}
+.toast-item.success{border-color:rgba(30,122,74,.22);background:var(--green-hl);color:var(--green)}
+.toast-item.info{border-color:rgba(0,99,160,.22);background:var(--blue-hl);color:var(--blue)}
+.toast-item.warn{border-color:rgba(138,95,0,.22);background:var(--amber-hl);color:var(--amber)}
+.toast-item.error{border-color:rgba(184,50,50,.22);background:var(--red-hl);color:var(--red)}
+
+/* ── MISC ─────────────────────────────────────────────── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.alert{padding:.65rem .9rem;border-radius:var(--rm);margin-bottom:.65rem;font-size:.78rem;font-weight:600}
+.alert-warn{background:var(--amber-hl);color:var(--amber);border:1px solid rgba(138,95,0,.2)}
+.alert-red{background:var(--red-hl);color:var(--red);border:1px solid rgba(184,50,50,.2)}
+.toolbar{display:flex;align-items:center;gap:.5rem;margin-bottom:.65rem;flex-wrap:wrap}
+.sw{position:relative;flex:1;min-width:150px}
+.sw i{position:absolute;left:.5rem;top:50%;transform:translateY(-50%);color:var(--faint);pointer-events:none}
+.s-input{padding-left:1.8rem!important}
+.fsel{font-size:.72rem;padding:.32rem .55rem;border-radius:var(--rm);border:1px solid var(--border);background:var(--surface);color:var(--text)}
+.mb1{margin-bottom:.5rem}
+.print-area{display:none}
+@media print{
+  body>*:not(.print-area){display:none!important}
+  .print-area{display:block!important}
+  @page{size:A4 portrait;margin:15mm 12mm}
+  .recibo-tbl th,.recibo-total-box,thead tr,tfoot tr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  table{border-collapse:collapse;width:100%}
+  td,th{padding:6px 8px;border:1px solid #ddd;font-size:12px}
+  .kpi{border:1px solid #ddd;padding:8px;border-radius:4px}
+  .card{border:1px solid #ddd;padding:10px;border-radius:4px;margin-bottom:10px}
+  button{display:none!important}
+}
+[data-tt]{width:30px;height:30px;border-radius:var(--rm);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+[data-tt]:hover{background:var(--s2)}
+</style>
+</head>
+<body>
+<div class="print-area" id="printArea"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- BORDERÔ BAR -->
+<div class="bord-bar" id="bordBar">
+  <i data-lucide="layers" style="width:14px;height:14px;flex-shrink:0"></i>
+  <span>Borderô:</span><span class="bord-cnt" id="bordCnt">0</span>
+  <span class="bord-val" id="bordBarV">R$ 0,00</span>
+  <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;margin-left:4px" onclick="navTo('bordero-emitir')">Emitir →</button>
+</div>
+
+<div class="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      Loja de Tecidos
+    </div>
+    <div class="topbar-mid">
+      <span id="syncBadge" class="sync-badge sync-off"><i data-lucide="cloud-off" style="width:10px;height:10px"></i> Offline</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="syncAll()"><i data-lucide="refresh-cw" style="width:11px;height:11px"></i> Sincronizar</button>
+      <button class="btn btn-primary btn-sm" onclick="navTo('nova-venda')"><i data-lucide="plus" style="width:11px;height:11px"></i> Nova Venda</button>
+      <button class="btn btn-teal btn-sm" onclick="abrirNovoCheque()"><i data-lucide="check-square" style="width:11px;height:11px"></i> Novo Cheque</button>
+      <button class="btn-icon" data-tt onclick="toggleTheme()"><i data-lucide="moon" style="width:14px;height:14px"></i></button>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="nav-sec">Geral</div>
+    <button class="nav-item active" onclick="navTo('painel',this)"><i data-lucide="layout-dashboard"></i>Painel</button>
+    <div class="nav-sec">Vendas</div>
+    <button class="nav-item" onclick="navTo('nova-venda',this)"><i data-lucide="plus-circle"></i>Nova Venda</button>
+    <button class="nav-item" onclick="navTo('recebimentos',this)"><i data-lucide="arrow-down-circle"></i>Recebimentos</button>
+    <div class="nav-sec">Cheques</div>
+    <button class="nav-item" onclick="navTo('cheques-maos',this)"><i data-lucide="credit-card"></i>Em Mãos<span class="nav-badge" id="nb-maos"></span></button>
+    <button class="nav-item" onclick="navTo('entrada-rapida',this)"><i data-lucide="zap"></i>Entrada Rápida ⚡</button>
+    <button class="nav-item" onclick="navTo('bordero-emitir',this)"><i data-lucide="layers"></i>Montar Borderô<span class="nav-badge warn" id="nb-bord"></span></button>
+    <button class="nav-item" onclick="navTo('bordero-historico',this)"><i data-lucide="archive"></i>Histórico Borderôs</button>
+    <button class="nav-item" onclick="navTo('compensacao',this)"><i data-lucide="calendar-check"></i>Compensação<span class="nav-badge warn" id="nb-comp"></span></button>
+    <button class="nav-item" onclick="navTo('cheques-pagos',this)"><i data-lucide="check-circle-2"></i>Pagos</button>
+    <div class="nav-sec">Financeiro</div>
+    <button class="nav-item" onclick="navTo('contas-pagar',this)"><i data-lucide="file-text"></i>Contas a Pagar<span class="nav-badge warn" id="nb-contas"></span></button>
+    <div class="nav-sec">Consultas</div>
+    <button class="nav-item" onclick="navTo('vendas-historico',this)"><i data-lucide="shopping-bag"></i>Histórico de Vendas</button>
+    <button class="nav-item" onclick="navTo('caixa-dia',this)"><i data-lucide="calculator"></i>Fechamento de Caixa</button>
+    <button class="nav-item" onclick="navTo('extrato',this)"><i data-lucide="user"></i>Extrato Cliente</button>
+    <button class="nav-item" onclick="navTo('relatorio',this)"><i data-lucide="bar-chart-2"></i>Relatório</button>
+    <div class="nav-sec">Cadastros</div>
+    <button class="nav-item" onclick="navTo('clientes',this)"><i data-lucide="users"></i>Clientes / Limites</button>
+    <button class="nav-item" onclick="navTo('produtos',this)"><i data-lucide="package"></i>Produtos</button>
+    <div class="conn-row"><span class="conn-dot" id="connDot"></span><span class="conn-label" id="connLabel">Não conectado</span></div>
+  </nav>
+
+  <main class="main">
+
+    <!-- PAINEL -->
+    <div id="view-painel" class="view active">
+      <div class="ph"><div><div class="ph-title">Painel</div><div class="ph-sub" id="dashDate"></div></div>
+        <button class="btn btn-outline btn-sm" onclick="syncAll()"><i data-lucide="refresh-cw" style="width:11px;height:11px"></i> Sincronizar</button>
+      </div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="two-col">
+        <div>
+          <div class="card"><div class="card-title">⚠ Cheques vencendo em 7 dias</div><div id="dash7"></div></div>
+          <div class="card"><div class="card-title">⚠ Alertas de crédito</div><div id="dashCredito"></div></div>
+          <div class="card"><div class="card-title">💳 Contas a Pagar</div><div id="dashContas"></div></div>
+        </div>
+        <div>
+          <div class="card"><div class="card-title">Posição por cliente</div><div id="dashCli"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOVA VENDA -->
+    <div id="view-nova-venda" class="view">
+      <div class="ph"><div class="ph-title">Nova Venda</div></div>
+      <div class="card">
+        <div class="form-grid" style="margin-bottom:.75rem">
+          <div class="fg"><label>Cliente *</label><select id="v-cliente" onchange="onVendaCliChange()"><option value="">Selecione...</option></select></div>
+          <div class="fg"><label>Data *</label><input type="date" id="v-data"></div>
+          <div class="fg"><label>Nº Pedido / Ref.</label><input type="text" id="v-ref" placeholder="Opcional"></div>
+        </div>
+        <div class="fg" style="margin-bottom:.75rem"><label>Observação</label><input type="text" id="v-obs" placeholder="Opcional"></div>
+        <div class="card-title">Itens da Venda</div>
+        <div class="item-header"><span>Produto / Tecido</span><span>Qtd/Metros</span><span>Preço Unit.</span><span></span></div>
+        <div id="itens-lista"></div>
+        <button class="add-item-btn" onclick="addItem()">+ Adicionar item</button>
+        <div class="total-box"><span class="total-label">Total</span><span class="total-val" id="v-total">R$ 0,00</span></div>
+        <div class="pag-section">
+          <div class="pag-title">Forma de Pagamento</div>
+          <div class="formas-grid">
+            <div class="forma-card" data-f="prazo" onclick="toggleForma('prazo',this)"><div class="fi">📋</div><div class="fn">A Prazo</div></div>
+            <div class="forma-card" data-f="dinheiro" onclick="toggleForma('dinheiro',this)"><div class="fi">💵</div><div class="fn">Dinheiro</div></div>
+            <div class="forma-card" data-f="pix" onclick="toggleForma('pix',this)"><div class="fi">⚡</div><div class="fn">Pix</div></div>
+            <div class="forma-card" data-f="cartao" onclick="toggleForma('cartao',this)"><div class="fi">💳</div><div class="fn">Cartão</div></div>
+            <div class="forma-card" data-f="cheque" onclick="toggleForma('cheque',this)"><div class="fi">✱</div><div class="fn">Cheque</div></div>
+          </div>
+          <div id="formas-valores" class="forma-rows"></div>
+          <div id="vencimento-area" style="display:none;margin-top:.65rem">
+            <div class="form-grid">
+              <div class="fg"><label>Vencimento</label><input type="date" id="v-vencimento"></div>
+              <div class="fg"><label>Obs. do prazo</label><input type="text" id="v-prazo-obs" placeholder="Ex: 30 dias"></div>
+            </div>
+          </div>
+          <div id="v-credito-alerta" class="alert alert-warn" style="display:none;margin-top:.65rem;margin-bottom:0"></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-outline" onclick="limparVenda()">Limpar</button>
+          <button class="btn btn-primary" onclick="salvarVenda()">Confirmar Venda</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECEBIMENTOS -->
+    <div id="view-recebimentos" class="view">
+      <div class="ph"><div class="ph-title">Recebimentos</div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-pagamento')"><i data-lucide="plus" style="width:11px;height:11px"></i> Registrar</button>
+      </div>
+      <div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Cliente</th><th>Valor</th><th>Forma</th><th>Observação</th></tr></thead><tbody id="tbl-pags"></tbody></table></div>
+    </div>
+
+
+    <!-- ENTRADA RÁPIDA -->
+    <div id="view-entrada-rapida" class="view">
+      <div class="ph">
+        <div>
+          <div class="ph-title">Entrada Rápida de Cheques ⚡</div>
+          <div class="ph-sub">Preencha vários cheques de uma vez como numa planilha. Tab avança o campo, Enter adiciona linha.</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn btn-outline btn-sm" onclick="erImportarCSV()"><i data-lucide="upload" style="width:11px;height:11px"></i> Importar CSV/Excel</button>
+          <button class="btn btn-outline btn-sm" onclick="erDownloadModelo()"><i data-lucide="download" style="width:11px;height:11px"></i> Baixar Modelo</button>
+          <button class="btn btn-outline btn-sm" onclick="erLimpar()"><i data-lucide="trash-2" style="width:11px;height:11px"></i> Limpar</button>
+          <button class="btn btn-primary" onclick="erSalvarTodos()"><i data-lucide="save" style="width:11px;height:11px"></i> Salvar Todos</button>
+        </div>
+      </div>
+
+      <!-- Atalhos -->
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:.75rem">
+        <span style="font-size:.72rem;color:var(--muted)"><kbd style="background:var(--s2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:.68rem">Tab</kbd> Próximo campo</span>
+        <span style="font-size:.72rem;color:var(--muted)"><kbd style="background:var(--s2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:.68rem">Enter</kbd> Nova linha</span>
+        <span style="font-size:.72rem;color:var(--muted)"><kbd style="background:var(--s2);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:.68rem">Del</kbd> Remover linha</span>
+        <span style="font-size:.72rem;color:var(--muted)">Banco: digite código (ex: <strong>341</strong>) → autocompleta Itaú</span>
+      </div>
+
+      <!-- Tabela de entrada -->
+      <div style="overflow-x:auto;border-radius:var(--rl);border:1px solid var(--border);background:var(--surface);box-shadow:var(--shadow)">
+        <table style="border-collapse:collapse;width:100%;font-size:.775rem;min-width:900px">
+          <thead>
+            <tr style="background:var(--s2)">
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;width:32px">#</th>
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;min-width:130px">Cliente *</th>
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;min-width:160px">Titular *</th>
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;width:90px">Nº Cheque</th>
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;min-width:130px">Banco</th>
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;width:100px">Valor (R$) *</th>
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;width:105px">Dt. Recebimento</th>
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;width:65px">Prazo</th>
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;width:105px">Compensação *</th>
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);color:var(--muted);font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;min-width:100px">Enviado para</th>
+              <th style="padding:.5rem .6rem;border-bottom:1px solid var(--border);width:28px"></th>
+            </tr>
+          </thead>
+          <tbody id="er-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Rodapé -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.75rem;flex-wrap:wrap;gap:.5rem">
+        <button class="btn btn-outline btn-sm" onclick="erAddLinha()"><i data-lucide="plus" style="width:11px;height:11px"></i> Adicionar linha</button>
+        <div style="display:flex;align-items:center;gap:1.5rem">
+          <span style="font-size:.8rem;color:var(--muted)">Total: <strong id="er-total-q">0</strong> cheques</span>
+          <span style="font-size:.9rem;font-weight:700;color:var(--accent)" id="er-total-v">R$ 0,00</span>
+          <button class="btn btn-primary" onclick="erSalvarTodos()"><i data-lucide="save" style="width:11px;height:11px"></i> Salvar Todos</button>
+        </div>
+      </div>
+
+      <!-- Resultado do salvamento -->
+      <div id="er-resultado" style="margin-top:.75rem"></div>
+
+      <!-- Import CSV oculto -->
+      <input type="file" id="er-file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="erProcessarArquivo(this)">
+    </div>
+
+    <!-- CHEQUES EM MÃOS -->
+    <div id="view-cheques-maos" class="view">
+      <div class="ph"><div class="ph-title">Cheques em Mãos</div>
+        <div style="display:flex;gap:.4rem">
+          <button class="btn btn-outline btn-sm" onclick="selTodos()">Selecionar todos</button>
+          <button class="btn btn-outline btn-sm" onclick="limparSel()">Limpar seleção</button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="sw"><i data-lucide="search" style="width:13px;height:13px"></i><input class="fsel s-input" style="width:200px" id="fq" placeholder="Buscar..." oninput="renderChequesManos()"></div>
+        <select class="fsel" id="fcli" onchange="renderChequesManos()"><option value="">Todos os clientes</option></select>
+        <select class="fsel" id="fst" onchange="renderChequesManos()">
+          <option value="">Todos status</option>
+          <option value="PENDENTE">Pendente</option>
+          <option value="VENCIDO">Vencido</option>
+        </select>
+      </div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th><input type="checkbox" id="chkAll" onchange="togAll(this)"></th><th>Venc.</th><th>Dias</th><th>Cliente</th><th>Titular</th><th>Nº</th><th>Banco</th><th class="tr-r">Valor</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody id="tbl-cheques-maos"></tbody>
+      </table></div>
+    </div>
+
+    <!-- BORDERÔ EMITIR -->
+    <div id="view-bordero-emitir" class="view">
+      <div class="ph"><div><div class="ph-title">Montar Borderô</div><div class="ph-sub">Selecione cheques na aba "Em Mãos" e emita o borderô</div></div></div>
+      <div class="card">
+        <div class="form-grid" style="margin-bottom:.75rem">
+          <div class="fg"><label>Destinatário</label><input type="text" id="b-dest" placeholder="Para quem vai"></div>
+          <div class="fg"><label>Responsável</label><input type="text" id="b-resp" placeholder="Quem está enviando"></div>
+          <div class="fg"><label>Data de envio</label><input type="date" id="b-data"></div>
+          <div class="fg"><label>Observação</label><input type="text" id="b-obs" placeholder="Opcional"></div>
+        </div>
+        <div class="card-title">Cheques selecionados</div>
+        <div class="tw"><table class="tbl">
+          <thead><tr><th>#</th><th>Cliente</th><th>Titular</th><th>Nº</th><th>Banco</th><th>Vencimento</th><th class="tr-r">Valor</th><th></th></tr></thead>
+          <tbody id="tbl-bord"></tbody>
+        </table></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:.75rem 0 0;border-top:1px solid var(--div);margin-top:.5rem">
+          <div><span class="fw7" id="bTotQ">0 cheques</span></div>
+          <div style="display:flex;align-items:center;gap:1rem">
+            <span style="color:var(--muted);font-size:.8rem">Total:</span>
+            <span class="fw7" style="font-size:1.1rem;color:var(--accent)" id="bTotV">R$ 0,00</span>
+            <button class="btn btn-teal" onclick="emitirBordereau()"><i data-lucide="send" style="width:12px;height:12px"></i> Emitir Borderô</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BORDERÔ HISTÓRICO -->
+    <div id="view-bordero-historico" class="view">
+      <div class="ph"><div class="ph-title">Histórico de Borderôs</div></div>
+      <div id="listBorderos"></div>
+    </div>
+
+    <!-- COMPENSAÇÃO -->
+    <div id="view-compensacao" class="view">
+      <div class="ph"><div><div class="ph-title">Compensação</div><div class="ph-sub">Dê baixa nos cheques de borderôs já entregues</div></div></div>
+      <div class="toolbar">
+        <select class="fsel" id="fcomp-cli" onchange="renderCompensacao()"><option value="">Todos os clientes</option></select>
+      </div>
+      <div id="compContent"></div>
+    </div>
+
+    <!-- CHEQUES PAGOS -->
+    <div id="view-cheques-pagos" class="view">
+      <div class="ph"><div class="ph-title">Cheques Pagos / Compensados</div></div>
+      <div class="tw"><table class="tbl"><thead><tr><th>Cliente</th><th>Titular</th><th>Nº</th><th class="tr-r">Valor</th><th>Vencimento</th><th>Pago em</th><th>Borderô</th></tr></thead><tbody id="tbl-pagos"></tbody></table></div>
+    </div>
+
+    <!-- CONTAS A PAGAR -->
+    <div id="view-contas-pagar" class="view">
+      <div class="ph">
+        <div><div class="ph-title">Contas a Pagar</div><div class="ph-sub">Controle de contas mensais e avulsas</div></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <select class="fsel" id="cp-filtro-mes" onchange="renderContasPagar()"></select>
+          <select class="fsel" id="cp-filtro-status" onchange="renderContasPagar()">
+            <option value="">Todos</option>
+            <option value="PENDENTE">Pendente</option>
+            <option value="VENCIDO">Vencido</option>
+            <option value="PAGO">Pago</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="abrirNovaContaFixa()"><i data-lucide="repeat" style="width:11px;height:11px"></i> Nova Conta Fixa</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirNovaContaAvulsa()"><i data-lucide="plus" style="width:11px;height:11px"></i> Lançar Conta</button>
+        </div>
+      </div>
+
+      <!-- KPIs do mês -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:1rem" id="cp-kpis"></div>
+
+      <!-- Tabela -->
+      <div class="tw"><table class="tbl">
+        <thead><tr>
+          <th>Conta / Fornecedor</th><th>Categoria</th><th>Vencimento</th>
+          <th class="tr-r">Valor Original</th><th class="tr-r">Pago</th><th class="tr-r">Saldo</th>
+          <th>%</th><th>Status</th><th>Ações</th>
+        </tr></thead>
+        <tbody id="tbl-contas"></tbody>
+      </table></div>
+    </div>
+
+    <!-- HISTÓRICO DE VENDAS -->
+    <div id="view-vendas-historico" class="view">
+      <div class="ph">
+        <div><div class="ph-title">Histórico de Vendas</div><div class="ph-sub">Clique em uma venda para ver o romaneio completo</div></div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <input type="date" id="vh-de" class="fsel" onchange="renderVendasHistorico()">
+          <input type="date" id="vh-ate" class="fsel" onchange="renderVendasHistorico()">
+          <select class="fsel" id="vh-cli" onchange="renderVendasHistorico()"><option value="">Todos os clientes</option></select>
+          <button class="btn btn-outline btn-sm" onclick="renderVendasHistorico()"><i data-lucide="search" style="width:12px;height:12px"></i> Filtrar</button>
+        </div>
+      </div>
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1rem" id="vh-kpis"></div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Data</th><th>Cliente</th><th>Ref.</th><th>Itens</th><th>Formas de Pagamento</th><th class="tr-r">Total</th><th>Ações</th></tr></thead>
+        <tbody id="tbl-vh"></tbody>
+      </table></div>
+    </div>
+
+    <!-- FECHAMENTO DE CAIXA -->
+    <div id="view-caixa-dia" class="view">
+      <div class="ph">
+        <div><div class="ph-title">Fechamento de Caixa</div><div class="ph-sub">Resumo financeiro do dia</div></div>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <input type="date" id="cx-data" class="fsel" onchange="renderCaixaDia()">
+          <button class="btn btn-outline btn-sm" onclick="printCaixa()"><i data-lucide="printer" style="width:12px;height:12px"></i> Imprimir</button>
+        </div>
+      </div>
+      <div id="cx-conteudo"></div>
+    </div>
+
+    <!-- EXTRATO -->
+    <div id="view-extrato" class="view">
+      <div class="ph"><div class="ph-title">Extrato por Cliente</div></div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="fg"><label>Cliente</label><select id="ext-cli" onchange="renderExtrato()"><option value="">Selecione...</option></select></div>
+          <div class="fg"><label>De</label><input type="date" id="ext-de"></div>
+          <div class="fg"><label>Até</label><input type="date" id="ext-ate"></div>
+          <div class="fg" style="justify-content:flex-end;padding-top:1.2rem"><button class="btn btn-outline" onclick="renderExtrato()">Filtrar</button></div>
+        </div>
+      </div>
+      <div id="extrato-resultado"></div>
+    </div>
+
+    <!-- RELATÓRIO -->
+    <div id="view-relatorio" class="view">
+      <div class="ph"><div class="ph-title">Relatório por Período</div></div>
+      <div class="card">
+        <div class="form-grid">
+          <div class="fg"><label>De</label><input type="date" id="rel-de"></div>
+          <div class="fg"><label>Até</label><input type="date" id="rel-ate"></div>
+          <div class="fg"><label>Cliente</label><select id="rel-cli"><option value="">Todos</option></select></div>
+          <div class="fg"><label>Tipo</label><select id="rel-tipo"><option value="">Todos</option><option value="venda">Vendas</option><option value="cheque">Cheques</option><option value="pagamento">Pagamentos</option></select></div>
+        </div>
+        <div class="form-actions" style="border:none;padding:0;margin:0">
+          <button class="btn btn-outline" onclick="gerarRelatorio()">Gerar</button>
+          <button class="btn btn-green" onclick="exportCSV()"><i data-lucide="download" style="width:11px;height:11px"></i> Exportar Excel</button>
+        </div>
+      </div>
+      <div id="rel-resultado"></div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div id="view-clientes" class="view">
+      <div class="ph"><div class="ph-title">Clientes / Limites de Crédito</div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNovoCliente()"><i data-lucide="user-plus" style="width:11px;height:11px"></i> Novo Cliente</button>
+      </div>
+      <div class="tw"><table class="tbl"><thead><tr><th>Cliente</th><th class="tr-r">Limite</th><th class="tr-r">Saldo (Vendas)</th><th class="tr-r">Cheques Pend.</th><th class="tr-r">Disponível</th><th>Status</th><th>Ações</th></tr></thead><tbody id="tbl-clientes"></tbody></table></div>
+    </div>
+
+    <!-- PRODUTOS -->
+    <div id="view-produtos" class="view">
+      <div class="ph"><div class="ph-title">Produtos / Tecidos</div>
+        <button class="btn btn-primary btn-sm" onclick="limparProd();openModal('modal-produto')"><i data-lucide="plus" style="width:11px;height:11px"></i> Novo</button>
+      </div>
+      <div class="tw"><table class="tbl"><thead><tr><th>Produto / Tecido</th><th>Preço Base (R$/m)</th><th>Ações</th></tr></thead><tbody id="tbl-produtos"></tbody></table></div>
+    </div>
+
+  </main>
+</div><!-- /app -->
+
+<!-- ═══ MODALS ═══════════════════════════════════════════ -->
+<!-- CONFIG -->
+<div class="overlay" id="modal-config" onclick="cbk(event,'modal-config')"><div class="modal" style="max-width:500px">
+  <div class="modal-hdr"><span class="modal-title">⚙ Google Sheets</span><button class="btn-icon" onclick="closeModal('modal-config')"><i data-lucide="x"></i></button></div>
+  <div style="font-size:.78rem;color:var(--muted);margin-bottom:.75rem;line-height:1.7">Cole a URL do Apps Script implantado como Web App.</div>
+  <div class="fg mb1" style="margin-bottom:.75rem"><label>URL do Web App</label><input class="input" id="gasUrl" placeholder="https://script.google.com/macros/s/…/exec" style="font-size:.72rem"></div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-config')">Cancelar</button>
+    <button class="btn btn-outline btn-sm" onclick="testarConexao()"><i data-lucide="zap" style="width:11px;height:11px"></i> Testar</button>
+    <button class="btn btn-primary" onclick="salvarConfig()"><i data-lucide="save" style="width:11px;height:11px"></i> Salvar</button>
+  </div>
+</div></div>
+
+<!-- CHEQUE FORM -->
+<div class="overlay" id="modal-cheque" onclick="cbk(event,'modal-cheque')"><div class="modal">
+  <div class="modal-hdr"><span class="modal-title" id="mChTit">Registrar Cheque</span><button class="btn-icon" onclick="closeModal('modal-cheque')"><i data-lucide="x"></i></button></div>
+  <div class="form-grid" style="margin-bottom:.65rem">
+    <div class="fg"><label>Cliente *</label><select id="fCli"><option value="">Selecione...</option></select></div>
+    <div class="fg"><label>Titular *</label><input id="fTit" type="text" placeholder="Nome no cheque"></div>
+    <div class="fg"><label>Nº Cheque</label><input id="fNum" type="text"></div>
+    <div class="fg"><label>Banco / Agência</label><input id="fBanco" type="text" placeholder="Ex: BB / 1234-5"></div>
+    <div class="fg"><label>Valor (R$) *</label><input id="fVal" type="number" min="0" step="0.01"></div>
+    <div class="fg"><label>Prazo (dias)</label><input id="fPrazo" type="number" min="0" oninput="calcPrazo()"></div>
+    <div class="fg"><label>Data Recebimento *</label><input id="fRec" type="date" oninput="calcPrazo()"></div>
+    <div class="fg"><label>Data Compensação *</label><input id="fComp" type="date"></div>
+    <div class="fg"><label>Enviado para</label><input id="fEnv" type="text" placeholder="Nome do destinatário"></div>
+    <div class="fg"><label>Observação</label><input id="fObs" type="text"></div>
+  </div>
+  <div id="limAlrt" style="display:none;font-size:.78rem;font-weight:600;padding:.5rem .75rem;border-radius:var(--rm);margin-bottom:.5rem"></div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-cheque')">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarCheque()">Salvar Cheque</button>
+  </div>
+</div></div>
+
+<!-- RECIBO BORDERÔ -->
+<div class="overlay" id="modal-recibo" onclick="cbk(event,'modal-recibo')"><div class="modal" style="max-width:760px">
+  <div class="modal-hdr"><span class="modal-title">Borderô Emitido</span><button class="btn-icon" onclick="closeModal('modal-recibo')"><i data-lucide="x"></i></button></div>
+  <div id="reciboContent"></div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-recibo')">Fechar</button>
+    <button class="btn btn-outline btn-sm" onclick="printRecibo('reciboContent')"><i data-lucide="printer" style="width:11px;height:11px"></i> Imprimir A4</button>
+    <button class="btn btn-teal" onclick="closeModal('modal-recibo');navTo('compensacao')"><i data-lucide="calendar-check" style="width:11px;height:11px"></i> Ir para Compensação</button>
+  </div>
+</div></div>
+
+<!-- VER BORDERÔ -->
+<div class="overlay" id="modal-ver-bord" onclick="cbk(event,'modal-ver-bord')"><div class="modal" style="max-width:760px">
+  <div class="modal-hdr"><span class="modal-title" id="mVerTit">Borderô</span><button class="btn-icon" onclick="closeModal('modal-ver-bord')"><i data-lucide="x"></i></button></div>
+  <div id="verContent"></div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-ver-bord')">Fechar</button>
+    <button class="btn btn-outline btn-sm" onclick="printRecibo('verContent')"><i data-lucide="printer" style="width:11px;height:11px"></i> Imprimir A4</button>
+  </div>
+</div></div>
+
+<!-- PAGAMENTO -->
+<div class="overlay" id="modal-pagamento" onclick="cbk(event,'modal-pagamento')"><div class="modal" style="max-width:460px">
+  <div class="modal-hdr"><span class="modal-title">Registrar Recebimento</span><button class="btn-icon" onclick="closeModal('modal-pagamento')"><i data-lucide="x"></i></button></div>
+  <div class="form-grid" style="margin-bottom:.65rem">
+    <div class="fg"><label>Cliente *</label><select id="pag-cli" onchange="updSaldoPreview()"><option value="">Selecione...</option></select></div>
+    <div class="fg"><label>Data *</label><input id="pag-data" type="date"></div>
+    <div class="fg"><label>Valor (R$) *</label><input id="pag-valor" type="number" min="0" step="0.01" oninput="updSaldoPreview()"></div>
+    <div class="fg"><label>Forma</label><select id="pag-forma"><option value="dinheiro">Dinheiro</option><option value="pix">Pix</option><option value="cartao">Cartão</option><option value="cheque">Cheque</option><option value="outro">Outro</option></select></div>
+  </div>
+  <div class="fg" style="margin-bottom:.65rem"><label>Observação</label><input id="pag-obs" type="text"></div>
+  <div id="pag-saldo-info" style="display:none;background:var(--s2);border-radius:var(--rm);padding:.55rem .75rem;font-size:.8rem;margin-bottom:.5rem">Saldo após: <strong id="pag-saldo-val"></strong></div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-pagamento')">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarPagamento()">Confirmar</button>
+  </div>
+</div></div>
+
+<!-- CLIENTE -->
+<div class="overlay" id="modal-cliente" onclick="cbk(event,'modal-cliente')"><div class="modal" style="max-width:420px">
+  <div class="modal-hdr"><span class="modal-title" id="mCliTit">Novo Cliente</span><button class="btn-icon" onclick="closeModal('modal-cliente')"><i data-lucide="x"></i></button></div>
+  <input type="hidden" id="cli-id">
+  <div class="form-grid" style="margin-bottom:.65rem">
+    <div class="fg"><label>Nome *</label><input id="cli-nome" type="text" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="fg"><label>Telefone</label><input id="cli-tel" type="text"></div>
+    <div class="fg"><label>Limite de Crédito (R$)</label><input id="cli-limite" type="number" min="0" step="0.01" placeholder="0 = sem limite"></div>
+    <div class="fg"><label>Observação</label><input id="cli-obs" type="text"></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-cliente')">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarCliente()">Salvar</button>
+  </div>
+</div></div>
+
+<!-- LIMITE -->
+<div class="overlay" id="modal-limite" onclick="cbk(event,'modal-limite')"><div class="modal" style="max-width:340px">
+  <div class="modal-hdr"><span class="modal-title" id="mLimTit">Editar Limite</span><button class="btn-icon" onclick="closeModal('modal-limite')"><i data-lucide="x"></i></button></div>
+  <div class="fg" style="margin-bottom:.65rem"><label>Limite de Crédito (R$)</label><input id="fLimV" type="number" min="0" step="0.01"></div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-limite')">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarLimite()">Salvar</button>
+  </div>
+</div></div>
+
+<!-- PRODUTO -->
+<div class="overlay" id="modal-produto" onclick="cbk(event,'modal-produto')"><div class="modal" style="max-width:380px">
+  <div class="modal-hdr"><span class="modal-title">Produto / Tecido</span><button class="btn-icon" onclick="closeModal('modal-produto')"><i data-lucide="x"></i></button></div>
+  <input type="hidden" id="prod-id">
+  <div class="form-grid" style="margin-bottom:.65rem">
+    <div class="fg"><label>Nome *</label><input id="prod-nome" type="text" placeholder="Ex: Chita florida"></div>
+    <div class="fg"><label>Preço Base (R$/metro)</label><input id="prod-preco" type="number" min="0" step="0.01"></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-produto')">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarProduto()">Salvar</button>
+  </div>
+</div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+const SK = 'tecidos_v4';
+let GAS_URL = 'https://script.google.com/macros/s/AKfycbyv5PLkdMyyU6ZyxnJprGfXvGXQ2By21piImIFsGZw-mY4VI8ow1rJbVwYNyGSfxWQ2ww/exec'; // URL fixa — não precisa configurar
+let IS_ONLINE = false;
+
+// unified DB
+let CLIENTES = ['ALAN','ANDRE','CLEITON','ELI MAIA','DAVID MARIANA','JU MARIAH','BRUNA COUTO','JONATAN','SHIRLEY','LILIANE EDSON','TAINARA','JUNIOR DEODATO','BONANZA'];
+let limites = {};
+let cheques = [
+  // ── ALAN ─────────────────────────────────────────────
+  {id:9001,cliente:'ALAN',titular:'MOON BRAND IND COM LTDA',num:'041',banco:'341 — Itaú Unibanco',valor:22000,dataRec:'2026-04-01',dataComp:'2026-05-15',prazo:44,enviado:'',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  {id:9002,cliente:'ALAN',titular:'MOON BRAND IND COM LTDA',num:'042',banco:'341 — Itaú Unibanco',valor:22000,dataRec:'2026-04-01',dataComp:'2026-06-10',prazo:70,enviado:'',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  {id:9003,cliente:'ALAN',titular:'MOON BRAND IND COM LTDA',num:'043',banco:'341 — Itaú Unibanco',valor:18500,dataRec:'2026-04-10',dataComp:'2026-05-10',prazo:30,enviado:'Edine',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  // ── ANDRE ─────────────────────────────────────────────
+  {id:9004,cliente:'ANDRE',titular:'CARLA CRISTINE VIANA B. DINIZ',num:'007',banco:'033 — Santander',valor:7626.30,dataRec:'2026-04-05',dataComp:'2026-05-05',prazo:30,enviado:'',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  {id:9005,cliente:'ANDRE',titular:'SUPERMERCADO CENTRAL LTDA',num:'112',banco:'001 — Banco do Brasil',valor:4200,dataRec:'2026-04-08',dataComp:'2026-05-08',prazo:30,enviado:'',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  // ── CLEITON ───────────────────────────────────────────
+  {id:9006,cliente:'CLEITON',titular:'FERNANDO CARDOSO DE ALMEIDA',num:'001',banco:'237 — Bradesco',valor:3383,dataRec:'2026-04-03',dataComp:'2026-05-03',prazo:30,enviado:'',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  {id:9007,cliente:'CLEITON',titular:'TECIDOS MODELO ME',num:'089',banco:'104 — Caixa Econômica Federal',valor:5800,dataRec:'2026-04-12',dataComp:'2026-06-12',prazo:60,enviado:'',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  // ── JUNIOR DEODATO ────────────────────────────────────
+  {id:9008,cliente:'JUNIOR DEODATO',titular:'DISTRIBUIDORA ROCHA SANTOS',num:'234',banco:'756 — Sicoob',valor:9750,dataRec:'2026-04-02',dataComp:'2026-05-02',prazo:30,enviado:'Vinícius',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  {id:9009,cliente:'JUNIOR DEODATO',titular:'DISTRIBUIDORA ROCHA SANTOS',num:'235',banco:'756 — Sicoob',valor:9750,dataRec:'2026-04-02',dataComp:'2026-06-02',prazo:60,enviado:'',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  // ── BONANZA ───────────────────────────────────────────
+  {id:9010,cliente:'BONANZA',titular:'BONANZA CONFECCOES LTDA',num:'301',banco:'033 — Santander',valor:12400,dataRec:'2026-04-07',dataComp:'2026-05-07',prazo:30,enviado:'',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  {id:9011,cliente:'BONANZA',titular:'BONANZA CONFECCOES LTDA',num:'302',banco:'033 — Santander',valor:12400,dataRec:'2026-04-07',dataComp:'2026-06-07',prazo:60,enviado:'Edine',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  // ── ELI MAIA ──────────────────────────────────────────
+  {id:9012,cliente:'ELI MAIA',titular:'ELI MAIA ARTES ME',num:'055',banco:'748 — Sicredi',valor:2850,dataRec:'2026-04-09',dataComp:'2026-05-09',prazo:30,enviado:'',obs:'',status:'PENDENTE',borderoId:null,pagoEm:null},
+  // ── JÁ COMPENSADOS (para testar relatório) ────────────
+  {id:9013,cliente:'ALAN',titular:'MOON BRAND IND COM LTDA',num:'038',banco:'341 — Itaú Unibanco',valor:15000,dataRec:'2026-03-01',dataComp:'2026-04-01',prazo:31,enviado:'Edine',obs:'',status:'PAGO',borderoId:8001,pagoEm:'2026-04-03'},
+  {id:9014,cliente:'CLEITON',titular:'FERNANDO CARDOSO DE ALMEIDA',num:'088',banco:'237 — Bradesco',valor:3383,dataRec:'2026-03-10',dataComp:'2026-04-10',prazo:31,enviado:'Vinícius',obs:'',status:'PAGO',borderoId:8001,pagoEm:'2026-04-11'},
+  {id:9015,cliente:'BONANZA',titular:'BONANZA CONFECCOES LTDA',num:'298',banco:'033 — Santander',valor:8200,dataRec:'2026-03-05',dataComp:'2026-04-05',prazo:31,enviado:'Edine',obs:'',status:'PAGO',borderoId:8002,pagoEm:'2026-04-07'},
+];
+let borderos = [
+  {id:8001,dest:'Edine',resp:'Loja de Tecidos',data:'2026-03-01',obs:'',chequeIds:[9013,9014],total:18383,emitidoEm:'2026-03-01T10:00:00.000Z'},
+  {id:8002,dest:'Edine',resp:'Loja de Tecidos',data:'2026-03-05',obs:'',chequeIds:[9015],total:8200,emitidoEm:'2026-03-05T14:00:00.000Z'},
+];
+let vendas = [
+  {id:8010,cliente:'ALAN',data:'2026-04-01',total:22000,formas:JSON.stringify([{forma:'cheque',valor:22000}]),vencimento:'2026-05-15',ref:'PED-001',obs:''},
+  {id:8011,cliente:'ANDRE',data:'2026-04-05',total:7626.30,formas:JSON.stringify([{forma:'cheque',valor:7626.30}]),vencimento:'2026-05-05',ref:'PED-002',obs:''},
+  {id:8012,cliente:'CLEITON',data:'2026-04-03',total:3383,formas:JSON.stringify([{forma:'cheque',valor:2000},{forma:'dinheiro',valor:1383}]),vencimento:'2026-05-03',ref:'PED-003',obs:''},
+  {id:8013,cliente:'BONANZA',data:'2026-04-07',total:12400,formas:JSON.stringify([{forma:'cheque',valor:12400}]),vencimento:'2026-05-07',ref:'PED-004',obs:''},
+];
+let pagamentos = [
+  {id:8020,cliente:'ALAN',valor:5000,data:'2026-04-10',forma:'dinheiro',obs:'Abatimento parcial'},
+  {id:8021,cliente:'CLEITON',valor:1500,data:'2026-04-12',forma:'pix',obs:''},
+];
+let produtos = [
+  {id:1,nome:'Chita florida',preco:12},{id:2,nome:'Tricoline branco',preco:18.5},
+  {id:3,nome:'Oxford colorido',preco:14},{id:4,nome:'Malha fria',preco:22}
+];
+let selectedChIds = new Set();
+let editChId = null;
+let editLimCli = null;
+let bordAtualIds = null;
+let nextLid = 9100;
+
+// ═══════════════════════════════════════════════════════
+// PERSIST
+// ═══════════════════════════════════════════════════════
+function saveLocal(){localStorage.setItem(SK,JSON.stringify({CLIENTES,limites,cheques,borderos,vendas,pagamentos,produtos,contasFixas,contasLancadas,contasPagamentos,nextLid}));}
+function loadLocal(){
+  try{
+    const d=JSON.parse(localStorage.getItem(SK));
+    if(!d)return;
+    if(d.CLIENTES)CLIENTES=d.CLIENTES;
+    if(d.limites)limites=d.limites;
+    if(d.cheques)cheques=d.cheques;
+    if(d.borderos)borderos=d.borderos;
+    if(d.vendas)vendas=d.vendas;
+    if(d.pagamentos)pagamentos=d.pagamentos;
+    if(d.produtos)produtos=d.produtos;
+    if(d.contasFixas)contasFixas=d.contasFixas;
+    if(d.contasLancadas)contasLancadas=d.contasLancadas;
+    if(d.contasPagamentos)contasPagamentos=d.contasPagamentos;
+    if(d.nextLid)nextLid=d.nextLid;
+  }catch(e){}
+}
+function nid(){return++nextLid;}
+
+// ═══════════════════════════════════════════════════════
+// GOOGLE SHEETS
+// ═══════════════════════════════════════════════════════
+async function gas(action,body={}){
+  if(!GAS_URL)return null;
+  try{
+    let txt;
+    if(action.startsWith('get')||action==='ping'||action==='load_all'||action==='getAll'){
+      // GET — funciona direto com fetch
+      const r=await fetch(`${GAS_URL}?action=${action}`,{redirect:'follow'});
+      txt=await r.text();
+    }else{
+      // POST via fetch com Content-Type text/plain (evita preflight CORS)
+      const r=await fetch(GAS_URL,{
+        method:'POST',
+        redirect:'follow',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body:JSON.stringify({action,...body})
+      });
+      txt=await r.text();
+    }
+    // Limpa possível HTML de erro do Google antes de parsear
+    const clean=txt.trim();
+    if(clean.startsWith('<')){
+      console.warn('GAS retornou HTML:',clean.substring(0,200));
+      return null;
+    }
+    return JSON.parse(clean);
+  }catch(e){
+    console.warn('GAS erro:',e.message);
+    return null;
+  }
+}
+function setSyncBadge(s){
+  const el=document.getElementById('syncBadge');
+  const ic={ok:'cloud',off:'cloud-off',loading:'loader',err:'cloud-lightning'};
+  const cl={ok:'sync-ok',off:'sync-off',loading:'sync-loading',err:'sync-err'};
+  const now=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const lb={ok:`Sincronizado às ${now}`,off:'Offline',loading:'Sincronizando…',err:'Erro ao sincronizar'};
+  el.className=`sync-badge ${cl[s]}`;
+  el.innerHTML=`<i data-lucide="${ic[s]}" style="width:10px;height:10px"></i> ${lb[s]}`;
+  lucide.createIcons(el);
+  IS_ONLINE=s==='ok';
+  document.getElementById('connDot').className='conn-dot'+(s==='ok'?' ok':'');
+  document.getElementById('connLabel').textContent=s==='ok'?'Google Sheets':'Não conectado';
+}
+async function syncAll(){
+  setSyncBadge('loading');
+  try{
+    // Busca tudo em um único Promise.all
+    const[chs,bords,clisList,vendasR,pagsR,cfR,clR,cpR]=await Promise.all([
+      gas('getCheques'),
+      gas('getBorderos'),
+      gas('getClientes'),
+      gas('getVendas'),
+      gas('getPagamentos'),
+      gas('getContasFixas'),
+      gas('getContasLancadas'),
+      gas('getContasPagamentos')
+    ]);
+    // Se tudo retornou null, provável erro de CORS/autorização
+    if(chs===null&&bords===null&&vendasR===null){
+      throw new Error('Sem resposta. Verifique: (1) Apps Script autorizado? (2) Nova implantação feita? (3) Acesso: Qualquer pessoa?');
+    }
+    // Atualiza dados locais com os do Sheets
+    if(chs)   cheques   = chs;
+    if(bords) borderos  = bords;
+    if(clisList&&clisList.length){
+      CLIENTES=clisList.map(c=>String(c.nome)).filter(Boolean);
+      clisList.forEach(c=>{limites[c.nome]=+(c.limite)||0;});
+    }
+    if(vendasR&&vendasR.length)          vendas           = vendasR;
+    if(pagsR&&pagsR.length)              pagamentos       = pagsR;
+    if(cfR&&cfR.length)                  contasFixas      = cfR;
+    if(clR&&clR.length)                  contasLancadas   = clR;
+    if(cpR&&cpR.length)                  contasPagamentos = cpR;
+    saveLocal();
+    setSyncBadge('ok');
+    toast('✅ Dados sincronizados!','success');
+    renderCurrentView();
+    updateNavBadges();
+    updateNavBadgesContas();
+  }catch(e){
+    setSyncBadge('err');
+    console.error('Sync erro:',e);
+    toast('Erro: '+e.message,'error');
+  }
+}
+async function testarConexao(){
+  const url=(document.getElementById('gasUrl')?.value||GAS_URL).trim();
+  toast('Testando conexão…','info');
+  try{
+    const r=await fetch(`${url}?action=ping`,{redirect:'follow'});
+    const txt=await r.text();
+    if(txt.trim().startsWith('<')){toast('❌ Apps Script retornou HTML. Verifique autorização e implantação.','error');return;}
+    const j=JSON.parse(txt);
+    if(j.ok)toast('✅ Conexão OK! '+( j.msg||''),'success');
+    else toast('Resposta: '+JSON.stringify(j),'warn');
+  }catch(e){toast('❌ Falha: '+e.message,'error');}
+}
+async function salvarConfig(){
+  GAS_URL=document.getElementById('gasUrl').value.trim();
+  if(!GAS_URL){toast('URL não preenchida.','warn');return;}
+  localStorage.setItem('tecidos_gs_url',GAS_URL);
+  closeModal('modal-config');
+  await syncAll();
+}
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+const fmt=v=>'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtD=s=>{if(!s||s==='0')return'—';const p=String(s).split('-');return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:s;};
+const today=()=>new Date().toISOString().split('T')[0];
+const diasV=dc=>{if(!dc)return null;return Math.round((new Date(dc+'T12:00:00')-new Date())/86400000);};
+const stOf=c=>{
+  if(c.status==='PAGO')return'PAGO';
+  const d=diasV(c.dataComp);
+  if(c.borderoId)return'EM BORDERÔ';
+  return(d!==null&&d<0)?'VENCIDO':'PENDENTE';
+};
+const pillHtml=s=>{const m={PENDENTE:'p-pend',PAGO:'p-pago',VENCIDO:'p-venc','EM BORDERÔ':'p-bord'};return`<span class="pill ${m[s]||'p-pend'}">${s}</span>`;};
+const FL={prazo:'A Prazo',dinheiro:'Dinheiro',pix:'Pix',cartao:'Cartão',cheque:'Cheque'};
+
+function getSaldoVendas(cli){
+  const v=vendas.filter(x=>x.cliente==cli).reduce((s,x)=>{
+    const f=x.formas?(typeof x.formas==='string'?JSON.parse(x.formas):x.formas):[];
+    const prazo=f.filter(i=>i.forma==='prazo'||i.forma==='cheque').reduce((ss,i)=>ss+(+i.valor||0),0);
+    return s+(f.length?prazo:(+x.total||0));
+  },0);
+  const p=pagamentos.filter(x=>x.cliente==cli).reduce((s,x)=>s+(+x.valor||0),0);
+  return v-p;
+}
+function getChequePend(cli){return cheques.filter(c=>c.cliente==cli&&stOf(c)!=='PAGO').reduce((s,c)=>s+(+c.valor||0),0);}
+
+function toast(msg,type='info'){
+  const w=document.getElementById('toastWrap');
+  const t=document.createElement('div');
+  t.className=`toast-item ${type}`;t.textContent=msg;w.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(36px)';setTimeout(()=>t.remove(),400);},3000);
+}
+function cbk(e,id){if(e.target===document.getElementById(id))closeModal(id);}
+function openModal(id){document.getElementById(id).classList.add('open');lucide.createIcons();}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+// ═══════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════
+let curView='painel';
+function navTo(id,el){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('view-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  else{const nb=document.querySelector(`.nav-item[onclick*="'${id}'"]`);if(nb)nb.classList.add('active');}
+  curView=id;
+  renderView(id);
+  lucide.createIcons();
+}
+function renderCurrentView(){renderView(curView);}
+function renderView(id){
+  const m={
+    'painel':renderPainel,'nova-venda':initNovaVenda,
+    'recebimentos':renderRecebimentos,'cheques-maos':renderChequesManosInit,
+    'entrada-rapida':initEntradaRapida,'bordero-emitir':renderBordEmitir,'bordero-historico':renderBordHistorico,
+    'compensacao':renderCompensacao,'cheques-pagos':renderChequesPagos,
+    'contas-pagar':initContasPagar,'vendas-historico':initVendasHistorico,'caixa-dia':initCaixaDia,'extrato':initExtrato,'relatorio':initRelatorio,
+    'clientes':renderClientes,'produtos':renderProdutos
+  };
+  if(m[id])m[id]();
+}
+
+// ═══════════════════════════════════════════════════════
+// PAINEL
+// ═══════════════════════════════════════════════════════
+function renderPainel(){
+  document.getElementById('dashDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const emMansos=cheques.filter(c=>c.status!=='PAGO'&&!c.borderoId);
+  const pend=emMansos.filter(c=>stOf(c)==='PENDENTE');
+  const venc=emMansos.filter(c=>stOf(c)==='VENCIDO');
+  const inBord=cheques.filter(c=>c.borderoId&&c.status!=='PAGO');
+  const tvend=vendas.reduce((s,v)=>s+(+v.total||0),0);
+  const trec=pagamentos.reduce((s,p)=>s+(+p.valor||0),0);
+  document.getElementById('kpiGrid').innerHTML=`
+    <div class="kpi a"><div class="kpi-label">Total Vendido</div><div class="kpi-val">${fmt(tvend)}</div><div class="kpi-sub">${vendas.length} vendas</div></div>
+    <div class="kpi g"><div class="kpi-label">Total Recebido</div><div class="kpi-val">${fmt(trec)}</div><div class="kpi-sub">pagamentos</div></div>
+    <div class="kpi ${venc.length>0?'r':'w'}"><div class="kpi-label">Cheques em Mãos</div><div class="kpi-val">${fmt(emMansos.reduce((a,c)=>a+c.valor,0))}</div><div class="kpi-sub">${emMansos.length} cheques${venc.length?` • ${venc.length} vencidos`:''}</div></div>
+    <div class="kpi t"><div class="kpi-label">Em Borderô</div><div class="kpi-val">${fmt(inBord.reduce((a,c)=>a+c.valor,0))}</div><div class="kpi-sub">${inBord.length} cheques</div></div>`;
+
+  // Contas a pagar no painel
+  const {venc:contasVenc,pend5:contasPend5}=renderAlertasContas();
+  const totalAlertaContas=contasVenc.length+contasPend5.length;
+  let htmlContas='';
+  if(contasVenc.length)htmlContas+=contasVenc.map(c=>`<div class="alert alert-red" style="margin-bottom:.4rem"><strong>${c.nome}</strong> — ${fmt(c.valor)} — venceu em ${fmtD(c.vencimento)} <span style="margin-left:.5rem" onclick="navTo('contas-pagar')" style="cursor:pointer;text-decoration:underline;font-size:.72rem">Ver →</span></div>`).join('');
+  if(contasPend5.length)htmlContas+=contasPend5.map(c=>`<div class="alert alert-warn" style="margin-bottom:.4rem"><strong>${c.nome}</strong> — ${fmt(c.valor)} — vence em ${diasV(c.vencimento)}d (${fmtD(c.vencimento)})</div>`).join('');
+  if(!htmlContas)htmlContas='<p style="color:var(--faint);font-size:.78rem;padding:.5rem 0">Nenhuma conta vencendo ✅</p>';
+
+  // Cheques vencendo em 7 dias
+  const v7=emMansos.filter(c=>{const d=diasV(c.dataComp);return d!==null&&d>=0&&d<=7;});
+  const d7=document.getElementById('dash7');
+  if(!v7.length)d7.innerHTML='<p style="color:var(--faint);font-size:.78rem;padding:.5rem 0">Nenhum cheque vence em 7 dias ✅</p>';
+  else d7.innerHTML=`<div class="tw"><table class="tbl"><thead><tr><th>Cliente</th><th>Titular</th><th>Nº</th><th class="tr-r">Valor</th><th>Vence em</th><th>Dias</th></tr></thead><tbody>${v7.map(c=>`<tr><td class="fw7">${c.cliente}</td><td>${c.titular||'—'}</td><td class="mono">${c.num||'—'}</td><td class="tr-r mono">${fmt(c.valor)}</td><td>${fmtD(c.dataComp)}</td><td><span class="pill p-venc">${diasV(c.dataComp)}d</span></td></tr>`).join('')}</tbody></table></div>`;
+
+  // Alertas de crédito
+  let ac='';
+  CLIENTES.forEach(cl=>{
+    const lim=limites[cl]||0;const sv=getSaldoVendas(cl);const cp=getChequePend(cl);
+    const tot=sv+cp;
+    if(lim>0){const p=tot/lim;
+      if(p>1)ac+=`<div class="alert alert-red"><strong>${cl}</strong> — Saldo ${fmt(tot)} / Limite ${fmt(lim)} — <span style="color:var(--red)">ACIMA DO LIMITE</span></div>`;
+      else if(p>0.8)ac+=`<div class="alert alert-warn"><strong>${cl}</strong> — ${fmt(tot)} de ${fmt(lim)} (${(p*100).toFixed(0)}%) utilizado</div>`;
+    }
+  });
+  document.getElementById('dashCredito').innerHTML=ac||'<p style="color:var(--faint);font-size:.78rem;padding:.5rem 0">Sem alertas ✅</p>';
+  const dcEl=document.getElementById('dashContas');if(dcEl)dcEl.innerHTML=htmlContas;
+  updateNavBadgesContas();
+
+  // Posição por cliente
+  const por={};
+  cheques.filter(c=>c.status!=='PAGO').forEach(c=>{if(!por[c.cliente])por[c.cliente]={qtd:0,val:0,venc:0};por[c.cliente].qtd++;por[c.cliente].val+=c.valor;if(stOf(c)==='VENCIDO')por[c.cliente].venc++;});
+  const porcli=Object.entries(por).sort((a,b)=>b[1].val-a[1].val);
+  if(!porcli.length){document.getElementById('dashCli').innerHTML='<p style="color:var(--faint);font-size:.78rem;padding:.5rem 0">Nenhum cheque em aberto.</p>';return;}
+  document.getElementById('dashCli').innerHTML=`<div class="tw"><table class="tbl"><thead><tr><th>Cliente</th><th class="tr-r">Qtd</th><th class="tr-r">Total</th><th class="tr-r">Vencidos</th></tr></thead><tbody>${porcli.map(([cl,d])=>`<tr><td class="fw7">${cl}</td><td class="tr-r">${d.qtd}</td><td class="tr-r mono">${fmt(d.val)}</td><td class="tr-r">${d.venc>0?`<span class="pill p-venc">${d.venc}</span>`:'—'}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// NOVA VENDA
+// ═══════════════════════════════════════════════════════
+let itens=[],formasSel=[];
+function initNovaVenda(){
+  const s=document.getElementById('v-cliente');s.innerHTML='<option value="">Selecione...</option>';
+  CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  document.getElementById('v-data').value=today();
+  if(!itens.length)itens=[{produto:'',qtd:'',preco:''}];
+  formasSel=[];renderItens();renderFormas();calcTotal();
+}
+function renderItens(){
+  const el=document.getElementById('itens-lista');el.innerHTML='';
+  itens.forEach((item,i)=>{
+    const opts=produtos.map(p=>`<option value="${p.nome}" ${p.nome===item.produto?'selected':''}>${p.nome}</option>`).join('');
+    el.innerHTML+=`<div class="item-row">
+      <input type="text" list="dl-${i}" value="${item.produto||''}" placeholder="Produto..." oninput="ui(${i},'produto',this.value)">
+      <datalist id="dl-${i}">${opts}</datalist>
+      <input type="number" value="${item.qtd||''}" placeholder="0,0" min="0" step="0.1" oninput="ui(${i},'qtd',this.value)">
+      <input type="number" value="${item.preco||''}" placeholder="0,00" min="0" step="0.01" oninput="ui(${i},'preco',this.value)">
+      <button class="remove-btn" onclick="removeItem(${i})">×</button>
+    </div>`;
+  });
+}
+function ui(i,f,v){itens[i][f]=v;if(f==='produto'){const p=produtos.find(x=>x.nome===v);if(p&&!itens[i].preco){itens[i].preco=p.preco;renderItens();}}calcTotal();}
+function addItem(){itens.push({produto:'',qtd:'',preco:''});renderItens();}
+function removeItem(i){if(itens.length>1){itens.splice(i,1);renderItens();calcTotal();}}
+function calcTotal(){
+  const t=itens.reduce((s,i)=>s+(parseFloat(i.qtd)||0)*(parseFloat(i.preco)||0),0);
+  document.getElementById('v-total').textContent=fmt(t);
+  renderFormasValores(t);verificaCreditoVenda(t);return t;
+}
+function toggleForma(f,el){
+  const idx=formasSel.findIndex(x=>x.forma===f);
+  if(idx>=0){formasSel.splice(idx,1);el.classList.remove('sel');}else{formasSel.push({forma:f,valor:''});el.classList.add('sel');}
+  const t=calcTotal();
+  document.getElementById('vencimento-area').style.display=formasSel.some(x=>x.forma==='prazo'||x.forma==='cheque')?'block':'none';
+}
+function renderFormas(){document.querySelectorAll('.forma-card').forEach(c=>c.classList.toggle('sel',formasSel.some(x=>x.forma===c.dataset.f)));document.getElementById('vencimento-area').style.display='none';document.getElementById('formas-valores').innerHTML='';}
+function renderFormasValores(total){
+  const el=document.getElementById('formas-valores');
+  if(!formasSel.length){el.innerHTML='';return;}
+  if(formasSel.length===1&&!formasSel[0].valor)formasSel[0].valor=total.toFixed(2);
+  el.innerHTML=formasSel.map((f,i)=>{
+    const resto=total-formasSel.filter((_,j)=>j!==i).reduce((s,x)=>s+(parseFloat(x.valor)||0),0);
+    return`<div class="forma-row"><label>${FL[f.forma]||f.forma}</label><input type="number" value="${f.valor}" min="0" step="0.01" placeholder="0,00" oninput="uv(${i},this.value)"><span class="resta ${resto>=0?'ok':'err'}">${resto>=0?'Falta: '+fmt(resto):'Excede'}</span></div>`;
+  }).join('');
+}
+function uv(i,v){formasSel[i].valor=v;renderFormasValores(itens.reduce((s,x)=>s+(parseFloat(x.qtd)||0)*(parseFloat(x.preco)||0),0));}
+function verificaCreditoVenda(total){
+  const cli=document.getElementById('v-cliente').value;
+  const temP=formasSel.some(f=>f.forma==='prazo'||f.forma==='cheque');
+  const el=document.getElementById('v-credito-alerta');
+  if(cli&&temP){const lim=limites[cli]||0;const s=getSaldoVendas(cli);const vp=formasSel.filter(f=>f.forma==='prazo'||f.forma==='cheque').reduce((ss,f)=>ss+(parseFloat(f.valor)||0),0)||total;const ns=s+vp;if(lim>0&&ns>lim*0.8){el.textContent=`⚠ Saldo atual: ${fmt(s)} | Após esta venda: ${fmt(ns)} | Limite: ${fmt(lim)}`;el.style.display='block';return;}}el.style.display='none';
+}
+function onVendaCliChange(){calcTotal();}
+function limparVenda(){itens=[{produto:'',qtd:'',preco:''}];formasSel=[];renderItens();renderFormas();calcTotal();['v-cliente','v-ref','v-obs'].forEach(id=>document.getElementById(id).value='');}
+async function salvarVenda(){
+  const cli=document.getElementById('v-cliente').value;
+  const data=document.getElementById('v-data').value;
+  if(!cli||!data){toast('Preencha cliente e data.','warn');return;}
+  if(!formasSel.length){toast('Selecione pelo menos uma forma de pagamento.','warn');return;}
+  const itF=itens.filter(i=>i.produto&&parseFloat(i.qtd)>0);
+  if(!itF.length){toast('Adicione pelo menos um item.','warn');return;}
+  const total=itF.reduce((s,i)=>s+(parseFloat(i.qtd)||0)*(parseFloat(i.preco)||0),0);
+  const totF=formasSel.reduce((s,f)=>s+(parseFloat(f.valor)||0),0);
+  if(Math.abs(totF-total)>0.01){toast(`Soma das formas (${fmt(totF)}) ≠ total (${fmt(total)}).`,'warn');return;}
+  const obj={id:nid(),cliente:cli,data,obs:document.getElementById('v-obs').value,ref:document.getElementById('v-ref').value,total,vencimento:document.getElementById('v-vencimento')?.value||'',formas:JSON.stringify(formasSel),itens:itF};
+  vendas.push(obj);saveLocal();
+  if(GAS_URL)gas('saveVenda',obj);
+  toast('✅ Venda registrada!','success');
+  // Abre romaneio logo após confirmar
+  setTimeout(()=>abrirRomaneioAposSalvar(obj.id),300);
+  limparVenda();
+}
+
+// ═══════════════════════════════════════════════════════
+// RECEBIMENTOS
+// ═══════════════════════════════════════════════════════
+function renderRecebimentos(){
+  const s=document.getElementById('pag-cli');s.innerHTML='<option value="">Selecione...</option>';
+  CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  document.getElementById('pag-data').value=today();
+  const tbody=document.getElementById('tbl-pags');
+  if(!pagamentos.length){tbody.innerHTML='<tr class="empty-r"><td colspan="5">Nenhum recebimento.</td></tr>';return;}
+  tbody.innerHTML=[...pagamentos].reverse().map(p=>`<tr><td>${fmtD(p.data)}</td><td class="fw7">${p.cliente}</td><td class="tr-r mono fw7">${fmt(p.valor)}</td><td><span class="chip">${p.forma}</span></td><td>${p.obs||'—'}</td></tr>`).join('');
+}
+function updSaldoPreview(){
+  const cli=document.getElementById('pag-cli').value;
+  const v=parseFloat(document.getElementById('pag-valor').value)||0;
+  if(cli){document.getElementById('pag-saldo-val').textContent=fmt(getSaldoVendas(cli)-v);document.getElementById('pag-saldo-info').style.display='block';}
+}
+async function salvarPagamento(){
+  const cli=document.getElementById('pag-cli').value;
+  const valor=parseFloat(document.getElementById('pag-valor').value);
+  const data=document.getElementById('pag-data').value;
+  if(!cli||!valor||!data){toast('Preencha campos obrigatórios.','warn');return;}
+  const obj={id:nid(),cliente:cli,valor,data,forma:document.getElementById('pag-forma').value,obs:document.getElementById('pag-obs').value};
+  pagamentos.push(obj);saveLocal();
+  if(GAS_URL)gas('savePagamento',obj);
+  closeModal('modal-pagamento');renderRecebimentos();toast('Recebimento registrado!','success');
+}
+
+// ═══════════════════════════════════════════════════════
+// CHEQUES EM MÃOS
+// ═══════════════════════════════════════════════════════
+function renderChequesManosInit(){
+  const s=document.getElementById('fcli');s.innerHTML='<option value="">Todos os clientes</option>';
+  CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  renderChequesManos();
+}
+function renderChequesManos(){
+  const q=(document.getElementById('fq').value||'').toLowerCase();
+  const fc=document.getElementById('fcli').value;
+  const fs=document.getElementById('fst').value;
+  const lista=cheques.filter(c=>{
+    if(c.status==='PAGO')return false;
+    if(c.borderoId)return false; // já está em borderô — indisponível
+    if(fc&&c.cliente!==fc)return false;
+    const st=stOf(c);if(fs&&st!==fs)return false;
+    if(q&&!(c.cliente.toLowerCase().includes(q)||(c.titular||'').toLowerCase().includes(q)||(c.num||'').includes(q)))return false;
+    return true;
+  }).sort((a,b)=>a.dataComp>b.dataComp?1:-1);
+  const tbody=document.getElementById('tbl-cheques-maos');
+  if(!lista.length){tbody.innerHTML='<tr class="empty-r"><td colspan="10">Nenhum cheque.</td></tr>';updateBordBar();updateNavBadges();return;}
+  tbody.innerHTML=lista.map(c=>{
+    const st=stOf(c);const dias=diasV(c.dataComp);
+    const diasBadge=st==='PAGO'||dias===null?'—':dias<0?`<span class="pill p-venc">${dias}d</span>`:dias<=7?`<span class="pill p-pend">${dias}d</span>`:`<span class="tc">${dias}d</span>`;
+    const sel=selectedChIds.has(c.id)?'sel-row':'';
+    return`<tr class="${sel}">
+      <td><input type="checkbox" ${selectedChIds.has(c.id)?'checked':''} onchange="togCheque(${c.id},this.checked)" style="width:13px;height:13px;accent-color:var(--teal)"></td>
+      <td class="fw7">${fmtD(c.dataComp)}</td><td>${diasBadge}</td>
+      <td class="fw7">${c.cliente}</td><td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.titular||'—'}</td>
+      <td class="mono">${c.num||'—'}</td><td class="tc" style="font-size:.72rem">${c.banco||'—'}</td>
+      <td class="tr-r mono fw7">${fmt(c.valor)}</td><td>${pillHtml(st)}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-icon btn-sm" title="Editar" onclick="editarCheque(${c.id})"><i data-lucide="pencil" style="width:11px;height:11px"></i></button>
+      </td>
+    </tr>`;
+  }).join('');
+  lucide.createIcons();updateBordBar();updateNavBadges();
+}
+function togCheque(id,checked){checked?selectedChIds.add(id):selectedChIds.delete(id);updateBordBar();updateNavBadges();}
+function togAll(el){
+  const q=(document.getElementById('fq').value||'').toLowerCase();
+  const fc=document.getElementById('fcli').value;const fs=document.getElementById('fst').value;
+  cheques.filter(c=>{
+    if(c.status==='PAGO')return false;
+    if(c.borderoId)return false;
+    if(fc&&c.cliente!==fc)return false;
+    const st=stOf(c);if(fs&&st!==fs)return false;
+    if(q&&!(c.cliente.toLowerCase().includes(q)||(c.titular||'').toLowerCase().includes(q)||(c.num||'').includes(q)))return false;
+    return true;
+  }).forEach(c=>el.checked?selectedChIds.add(c.id):selectedChIds.delete(c.id));
+  renderChequesManos();
+}
+function selTodos(){document.getElementById('chkAll').checked=true;togAll(document.getElementById('chkAll'));}
+function limparSel(){selectedChIds.clear();renderChequesManos();}
+function updateBordBar(){
+  const sel=cheques.filter(c=>selectedChIds.has(c.id));
+  document.getElementById('bordCnt').textContent=sel.length;
+  document.getElementById('bordBarV').textContent=fmt(sel.reduce((a,c)=>a+c.valor,0));
+  document.getElementById('bordBar').classList.toggle('visible',sel.length>0);
+}
+function updateNavBadges(){
+  const nb=document.getElementById('nb-bord');
+  nb.textContent=selectedChIds.size;nb.classList.toggle('show',selectedChIds.size>0);
+  const comp=cheques.filter(c=>c.borderoId&&c.status!=='PAGO').length;
+  const nc=document.getElementById('nb-comp');nc.textContent=comp;nc.classList.toggle('show',comp>0);
+  const maos=cheques.filter(c=>c.status!=='PAGO'&&!c.borderoId).length;
+  const nm=document.getElementById('nb-maos');nm.textContent=maos;nm.classList.toggle('show',maos>0);
+}
+
+// ═══════════════════════════════════════════════════════
+// BORDERÔ EMITIR
+// ═══════════════════════════════════════════════════════
+function renderBordEmitir(){
+  if(!document.getElementById('b-data').value)document.getElementById('b-data').value=today();
+  updateNavBadges();
+  const sel=cheques.filter(c=>selectedChIds.has(c.id));
+  const tbody=document.getElementById('tbl-bord');
+  if(!sel.length){tbody.innerHTML='<tr class="empty-r"><td colspan="8">Selecione cheques na aba "Em Mãos".</td></tr>';document.getElementById('bTotV').textContent='R$ 0,00';document.getElementById('bTotQ').textContent='0 cheques';return;}
+  tbody.innerHTML=sel.map((c,i)=>`<tr>
+    <td class="tc">${i+1}</td><td class="fw7">${c.cliente}</td>
+    <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.titular||'—'}</td>
+    <td class="mono">${c.num||'—'}</td><td class="tc" style="font-size:.72rem">${c.banco||'—'}</td>
+    <td>${fmtD(c.dataComp)}</td><td class="tr-r mono fw7">${fmt(c.valor)}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="remBord(${c.id})">Remover</button></td>
+  </tr>`).join('');
+  const tot=sel.reduce((a,c)=>a+c.valor,0);
+  document.getElementById('bTotV').textContent=fmt(tot);
+  document.getElementById('bTotQ').textContent=`${sel.length} cheque${sel.length!==1?'s':''}`;
+}
+function remBord(id){selectedChIds.delete(id);renderBordEmitir();updateBordBar();renderChequesManosInit();}
+// ── Abre revisão antes de emitir ─────────────────────
+function emitirBordereau(){
+  const sel=cheques.filter(c=>selectedChIds.has(c.id));
+  if(!sel.length){toast('Selecione ao menos um cheque na aba "Em Mãos".','warn');return;}
+
+  // Validar campos obrigatórios
+  const dest=document.getElementById('b-dest').value.trim();
+  const resp=document.getElementById('b-resp').value.trim();
+  if(!dest){
+    document.getElementById('b-dest').focus();
+    document.getElementById('b-dest').style.borderColor='var(--red)';
+    toast('⚠ Preencha o Destinatário antes de emitir.','warn');
+    return;
+  }
+  if(!resp){
+    document.getElementById('b-resp').focus();
+    document.getElementById('b-resp').style.borderColor='var(--red)';
+    toast('⚠ Preencha o Responsável antes de emitir.','warn');
+    return;
+  }
+  // Limpar borda de erro ao digitar
+  document.getElementById('b-dest').style.borderColor='';
+  document.getElementById('b-resp').style.borderColor='';
+
+  // Abrir tela de revisão
+  abrirRevisaoBordereau(sel, dest, resp);
+}
+
+// ── Tela de revisão ───────────────────────────────────
+function abrirRevisaoBordereau(sel, dest, resp){
+  const data=document.getElementById('b-data').value||today();
+  const obs=document.getElementById('b-obs').value;
+  const total=sel.reduce((a,c)=>a+c.valor,0);
+
+  // Salva dados temporários para confirmar depois
+  window._bordRascunho={sel,dest,resp,data,obs,total};
+
+  // Renderiza modal de revisão
+  const tbody=sel.map((c,i)=>`
+    <tr>
+      <td style="text-align:center;color:var(--muted);font-size:.72rem">${i+1}</td>
+      <td class="fw7">${c.cliente}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.titular||'—'}</td>
+      <td class="mono">${c.num||'—'}</td>
+      <td style="font-size:.72rem;color:var(--muted)">${c.banco||'—'}</td>
+      <td>${fmtD(c.dataComp)}</td>
+      <td style="text-align:right;font-weight:700;font-family:monospace">${fmt(c.valor)}</td>
+      <td>
+        <button onclick="revisaoRemoverCheque(${c.id})"
+          style="color:var(--red);background:none;border:1px solid rgba(184,50,50,.25);border-radius:4px;padding:2px 8px;font-size:.68rem;cursor:pointer;font-weight:600">
+          Remover
+        </button>
+      </td>
+    </tr>`).join('');
+
+  document.getElementById('rev-dest').textContent=dest;
+  document.getElementById('rev-resp').textContent=resp;
+  document.getElementById('rev-data').textContent=fmtD(data);
+  document.getElementById('rev-obs').textContent=obs||'—';
+  document.getElementById('rev-tbody').innerHTML=tbody;
+  document.getElementById('rev-qtd').textContent=`${sel.length} cheque${sel.length!==1?'s':''}`;
+  document.getElementById('rev-total').textContent=fmt(total);
+
+  openModal('modal-revisao-bord');
+  lucide.createIcons();
+}
+
+// Remove cheque durante revisão
+function revisaoRemoverCheque(chequeId){
+  if(!window._bordRascunho)return;
+  if(window._bordRascunho.sel.length<=1){
+    toast('O borderô precisa ter ao menos 1 cheque.','warn');return;
+  }
+  window._bordRascunho.sel=window._bordRascunho.sel.filter(c=>c.id!==chequeId);
+  selectedChIds.delete(chequeId);
+  const total=window._bordRascunho.sel.reduce((a,c)=>a+c.valor,0);
+  window._bordRascunho.total=total;
+  // Re-renderiza revisão
+  const {sel,dest,resp}=window._bordRascunho;
+  abrirRevisaoBordereau(sel,dest,resp);
+}
+
+// ── Confirmar e emitir de verdade ─────────────────────
+async function confirmarEmissaoBordereau(){
+  if(!window._bordRascunho)return;
+  const {sel,dest,resp,data,obs,total}=window._bordRascunho;
+  if(!sel.length){toast('Nenhum cheque para emitir.','warn');return;}
+
+  closeModal('modal-revisao-bord');
+
+  const emitidoEm=new Date().toISOString();
+  const chequeIds=sel.map(c=>c.id);
+  let bordId;
+  if(GAS_URL){const r=await gas('saveBordereau',{dest,resp,data,obs,chequeIds,total,emitidoEm});bordId=r&&r.id?r.id:nid();}
+  else bordId=nid();
+  const bord={id:bordId,dest,resp,data,obs,chequeIds,total,emitidoEm};
+  borderos.push(bord);bordAtualIds=[...chequeIds];
+  sel.forEach(c=>c.borderoId=bordId);
+  saveLocal();
+
+  document.getElementById('reciboContent').innerHTML=gerarRecibo(bord,sel);
+  openModal('modal-recibo');
+  selectedChIds.clear();renderBordEmitir();updateBordBar();updateNavBadges();
+  window._bordRascunho=null;
+  toast(`Borderô #${String(bordId).padStart(4,'0')} emitido — ${fmt(total)}`,'success');
+}
+
+// ═══════════════════════════════════════════════════════
+// RECIBO
+// ═══════════════════════════════════════════════════════
+function gerarRecibo(bord,chs){
+  return`<div class="recibo">
+    <div class="recibo-hdr">
+      <div><div class="recibo-title">BORDERÔ DE CHEQUES Nº ${String(bord.id).padStart(4,'0')}</div>
+        <div class="recibo-num">Emitido em ${new Date(bord.emitidoEm).toLocaleDateString('pt-BR')} às ${new Date(bord.emitidoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style="color:var(--teal)"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><line x1="2" y1="10" x2="22" y2="10" stroke="currentColor" stroke-width="2"/><line x1="6" y1="14" x2="10" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="14" y1="14" x2="18" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </div>
+    <div class="recibo-meta">
+      <div>Destinatário: <span>${bord.dest}</span></div><div>Responsável: <span>${bord.resp}</span></div>
+      <div>Data envio: <span>${fmtD(bord.data)}</span></div><div>Quantidade: <span>${chs.length} cheques</span></div>
+      ${bord.obs?`<div style="grid-column:1/-1">Observações: <span>${bord.obs}</span></div>`:''}
+    </div>
+    <table class="recibo-tbl"><thead><tr><th>#</th><th>Cliente</th><th>Titular</th><th>Nº Cheque</th><th>Banco/Ag.</th><th>Vencimento</th><th style="text-align:right">Valor</th></tr></thead>
+    <tbody>${chs.map((c,i)=>`<tr><td>${i+1}</td><td>${c.cliente}</td><td>${c.titular||'—'}</td><td class="mono">${c.num||'—'}</td><td>${c.banco||'—'}</td><td>${fmtD(c.dataComp)}</td><td style="text-align:right" class="mono">${fmt(c.valor)}</td></tr>`).join('')}</tbody></table>
+    <div class="recibo-total"><div class="recibo-total-box">Total: ${fmt(bord.total)}</div></div>
+    <div class="recibo-assin">
+      <div class="assin-linha">Entregue por: _______________________<br>Nome / Assinatura</div>
+      <div class="assin-linha">Recebido por: _______________________<br>Nome / Assinatura</div>
+    </div>
+  </div>`;
+}
+function printRecibo(sourceId){const c=document.getElementById(sourceId).innerHTML;const pa=document.getElementById('printArea');pa.innerHTML=c;window.print();setTimeout(()=>{pa.innerHTML='';},2000);}
+
+// ═══════════════════════════════════════════════════════
+// HISTÓRICO BORDERÔS
+// ═══════════════════════════════════════════════════════
+function renderBordHistorico(){
+  const el=document.getElementById('listBorderos');
+  if(!borderos.length){el.innerHTML='<p style="color:var(--faint);font-size:.8rem;padding:1rem">Nenhum borderô emitido.</p>';return;}
+  el.innerHTML=[...borderos].reverse().map(b=>{
+    const chs=cheques.filter(c=>b.chequeIds.includes(c.id));
+    const pagos=chs.filter(c=>c.status==='PAGO').length;
+    const temPago=pagos>0;
+    const cancelado=b.cancelado||false;
+    // botões de ação
+    const btnVer=`<button class="btn btn-outline btn-sm" onclick="verBordereau(${b.id})"><i data-lucide="eye" style="width:11px;height:11px"></i> Ver / Imprimir</button>`;
+    const btnEditar=''; // removido
+    const btnCancelar=!cancelado&&!temPago?`<button class="btn btn-danger btn-sm" onclick="cancelarBordereau(${b.id})"><i data-lucide="x-circle" style="width:11px;height:11px"></i> Cancelar</button>`:'';
+    const statusBadge=cancelado
+      ?`<span class="pill" style="background:var(--s2);color:var(--muted)">Cancelado</span>`
+      :`<span class="pill ${pagos===b.chequeIds.length?'p-pago':'p-pend'}">${pagos}/${b.chequeIds.length} compensados</span>`;
+    return`<div class="card mb1" style="${cancelado?'opacity:.55':''}">
+      <div style="display:flex;align-items:center;gap:.9rem;flex-wrap:wrap">
+        <div>
+          <div class="fw7">Borderô #${String(b.id).padStart(4,'0')} ${cancelado?'<span style="color:var(--red);font-size:.7rem;font-weight:600">[CANCELADO]</span>':''}</div>
+          <div style="font-size:.72rem;color:var(--muted)">${fmtD(b.data)} • ${b.resp||'—'} → ${b.dest||'—'}</div>
+          ${b.obs?`<div style="font-size:.72rem;color:var(--muted)">Obs: ${b.obs}</div>`:''}
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:.55rem;flex-wrap:wrap">
+          <span class="mono fw7">${fmt(b.total)}</span>
+          <span class="chip">${b.chequeIds.length} cheque${b.chequeIds.length!==1?'s':''}</span>
+          ${statusBadge}
+          ${btnVer}
+          ${btnEditar}
+          ${btnCancelar}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+function verBordereau(id){
+  const b=borderos.find(x=>x.id===id);if(!b)return;
+  const chs=cheques.filter(c=>b.chequeIds.includes(c.id));
+  document.getElementById('mVerTit').textContent=`Borderô #${String(b.id).padStart(4,'0')}`;
+  document.getElementById('verContent').innerHTML=gerarRecibo(b,chs);
+  openModal('modal-ver-bord');lucide.createIcons();
+}
+// ── Cancelar borderô ──────────────────────────────────
+function cancelarBordereau(id) {
+  const b = borderos.find(x => x.id === id);
+  if (!b) return;
+  const chs = cheques.filter(c => b.chequeIds.includes(c.id));
+  const temPago = chs.some(c => c.status === 'PAGO');
+  if (temPago) {
+    toast('Este borderô já tem cheques compensados e não pode ser cancelado.', 'warn');
+    return;
+  }
+  if (!confirm(`Cancelar Borderô #${String(b.id).padStart(4,'0')}?\n\nOs ${chs.length} cheque(s) voltarão para "Em Mãos".`)) return;
+
+  // Devolver cheques para Em Mãos
+  chs.forEach(c => { c.borderoId = null; });
+  b.cancelado = true;
+  saveLocal();
+
+  // Sync GAS
+  if (GAS_URL) {
+    chs.forEach(c => gas('saveCheque', {id: c.id, borderoId: null}));
+    gas('cancelBordereau', {id});
+  }
+
+  renderBordHistorico();
+  updateNavBadges();
+  toast(`Borderô #${String(id).padStart(4,'0')} cancelado — cheques devolvidos para Em Mãos.`, 'success');
+}
+
+// ── Editar borderô ────────────────────────────────────
+function editarBordereau(id) {
+  const b = borderos.find(x => x.id === id);
+  if (!b) return;
+  const chs = cheques.filter(c => b.chequeIds.includes(c.id));
+  const temPago = chs.some(c => c.status === 'PAGO');
+  if (temPago) {
+    toast('Este borderô já tem cheques compensados. Cancele os cheques individuais antes de editar.', 'warn');
+    return;
+  }
+
+  // Abre modal de edição de borderô
+  document.getElementById('eb-id').value = id;
+  document.getElementById('eb-num').textContent = String(id).padStart(4,'0');
+  document.getElementById('eb-dest').value = b.dest || '';
+  document.getElementById('eb-resp').value = b.resp || '';
+  document.getElementById('eb-data').value = b.data || today();
+  document.getElementById('eb-obs').value = b.obs || '';
+
+  // Renderiza cheques do borderô com opção de remover
+  const tbody = document.getElementById('eb-tbody');
+  tbody.innerHTML = chs.map(c => `
+    <tr id="eb-row-${c.id}">
+      <td class="fw7">${c.cliente}</td>
+      <td>${c.titular||'—'}</td>
+      <td class="mono">${c.num||'—'}</td>
+      <td>${fmtD(c.dataComp)}</td>
+      <td class="tr-r mono">${fmt(c.valor)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="ebRemoverCheque(${c.id},${id})">Remover</button></td>
+    </tr>`).join('');
+
+  atualizarEbTotal(id);
+  openModal('modal-editar-bord');
+  lucide.createIcons();
+}
+
+// Remove um cheque do borderô durante edição
+function ebRemoverCheque(chequeId, bordId) {
+  const b = borderos.find(x => x.id === bordId);
+  const c = cheques.find(x => x.id === chequeId);
+  if (!b || !c) return;
+  if (b.chequeIds.length <= 1) {
+    toast('O borderô precisa ter ao menos 1 cheque. Para remover todos, cancele o borderô.', 'warn');
+    return;
+  }
+  b.chequeIds = b.chequeIds.filter(x => x !== chequeId);
+  c.borderoId = null;
+  // Remove linha da tabela visual
+  const row = document.getElementById(`eb-row-${chequeId}`);
+  if (row) row.remove();
+  atualizarEbTotal(bordId);
+}
+
+function atualizarEbTotal(bordId) {
+  const b = borderos.find(x => x.id === bordId);
+  if (!b) return;
+  const chs = cheques.filter(c => b.chequeIds.includes(c.id));
+  const total = chs.reduce((s, c) => s + c.valor, 0);
+  b.total = total;
+  const el = document.getElementById('eb-total');
+  if (el) el.textContent = fmt(total);
+  const qt = document.getElementById('eb-qtd');
+  if (qt) qt.textContent = `${chs.length} cheque${chs.length!==1?'s':''}`;
+}
+
+async function salvarEdicaoBordereau() {
+  const id = parseInt(document.getElementById('eb-id').value);
+  const b = borderos.find(x => x.id === id);
+  if (!b) return;
+  b.dest = document.getElementById('eb-dest').value;
+  b.resp = document.getElementById('eb-resp').value;
+  b.data = document.getElementById('eb-data').value;
+  b.obs  = document.getElementById('eb-obs-ed').value;
+  saveLocal();
+  if (GAS_URL) await gas('saveBordereau', b);
+  closeModal('modal-editar-bord');
+  renderBordHistorico();
+  updateNavBadges();
+  toast(`Borderô #${String(id).padStart(4,'0')} atualizado!`, 'success');
+}
+
+
+
+// ═══════════════════════════════════════════════════════
+// COMPENSAÇÃO
+// ═══════════════════════════════════════════════════════
+function renderCompensacao(){
+  const s=document.getElementById('fcomp-cli');
+  const cur=s.value;
+  s.innerHTML='<option value="">Todos os clientes</option>';CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  s.value=cur;
+  const fc=s.value;
+  const emBord=borderos.filter(b=>{
+    const chs=cheques.filter(c=>b.chequeIds.includes(c.id)&&c.status!=='PAGO');
+    if(!chs.length)return false;
+    if(fc&&!chs.some(c=>c.cliente===fc))return false;
+    return true;
+  });
+  const el=document.getElementById('compContent');
+  if(!emBord.length){el.innerHTML='<p style="color:var(--faint);font-size:.8rem;padding:1rem">Nenhum borderô aguardando compensação.</p>';return;}
+  el.innerHTML=emBord.map(b=>{
+    const chs=cheques.filter(c=>b.chequeIds.includes(c.id)&&c.status!=='PAGO'&&(!fc||c.cliente===fc));
+    return`<div class="card mb1">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
+        <div><div class="fw7">Borderô #${String(b.id).padStart(4,'0')} — ${b.dest}</div>
+          <div style="font-size:.72rem;color:var(--muted)">${fmtD(b.data)} • ${chs.length} cheque(s) pendente(s) • ${fmt(chs.reduce((a,c)=>a+c.valor,0))}</div></div>
+        <button class="btn btn-green btn-sm" onclick="compensarBordereau(${b.id})"><i data-lucide="check-circle-2" style="width:11px;height:11px"></i> Marcar todos como Pagos</button>
+      </div>
+      <div class="tw"><table class="tbl"><thead><tr><th>Cliente</th><th>Titular</th><th>Nº</th><th>Vencimento</th><th class="tr-r">Valor</th><th>Ação</th></tr></thead>
+      <tbody>${chs.map(c=>`<tr><td class="fw7">${c.cliente}</td><td>${c.titular||'—'}</td><td class="mono">${c.num||'—'}</td><td>${fmtD(c.dataComp)}</td><td class="tr-r mono">${fmt(c.valor)}</td>
+        <td><button class="btn btn-green btn-sm" onclick="compensarCheque(${c.id})">Pago</button></td>
+      </tr>`).join('')}</tbody></table></div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+async function compensarBordereau(bordId){
+  const chs=cheques.filter(c=>c.borderoId===bordId&&c.status!=='PAGO');
+  for(const c of chs){c.status='PAGO';c.pagoEm=today();if(GAS_URL)await gas('saveCheque',{id:c.id,status:'PAGO',pagoEm:today()});}
+  saveLocal();renderCompensacao();updateNavBadges();toast(`Borderô #${bordId} — todos os cheques compensados!`,'success');
+}
+async function compensarCheque(id){
+  const c=cheques.find(x=>x.id===id);if(!c)return;
+  c.status='PAGO';c.pagoEm=today();saveLocal();
+  if(GAS_URL)await gas('saveCheque',{id,status:'PAGO',pagoEm:today()});
+  renderCompensacao();updateNavBadges();toast('Cheque compensado!','success');
+}
+
+// ═══════════════════════════════════════════════════════
+// CHEQUES PAGOS
+// ═══════════════════════════════════════════════════════
+function renderChequesPagos(){
+  const pgs=cheques.filter(c=>c.status==='PAGO');
+  const tbody=document.getElementById('tbl-pagos');
+  if(!pgs.length){tbody.innerHTML='<tr class="empty-r"><td colspan="7">Nenhum cheque pago.</td></tr>';return;}
+  tbody.innerHTML=[...pgs].sort((a,b)=>b.pagoEm>a.pagoEm?1:-1).map(c=>`<tr>
+    <td class="fw7">${c.cliente}</td><td>${c.titular||'—'}</td><td class="mono">${c.num||'—'}</td>
+    <td class="tr-r mono">${fmt(c.valor)}</td><td>${fmtD(c.dataComp)}</td><td>${c.pagoEm?fmtD(c.pagoEm):'—'}</td>
+    <td>${c.borderoId?`<span class="chip">#${String(c.borderoId).padStart(4,'0')}</span>`:'—'}</td>
+  </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// CHEQUE FORM
+// ═══════════════════════════════════════════════════════
+function abrirNovoCheque(){
+  editChId=null;document.getElementById('mChTit').textContent='Registrar Cheque';
+  const s=document.getElementById('fCli');s.innerHTML='<option value="">Selecione...</option>';CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  ['fTit','fNum','fBanco','fVal','fPrazo','fEnv','fObs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fRec').value=today();document.getElementById('fComp').value='';document.getElementById('limAlrt').style.display='none';
+  openModal('modal-cheque');
+}
+function editarCheque(id){
+  const c=cheques.find(x=>x.id===id);if(!c)return;editChId=id;
+  document.getElementById('mChTit').textContent='Editar Cheque';
+  const s=document.getElementById('fCli');s.innerHTML='<option value="">Selecione...</option>';CLIENTES.forEach(cl=>s.innerHTML+=`<option>${cl}</option>`);
+  s.value=c.cliente;document.getElementById('fTit').value=c.titular||'';document.getElementById('fNum').value=c.num||'';
+  document.getElementById('fBanco').value=c.banco||'';document.getElementById('fVal').value=c.valor;
+  document.getElementById('fRec').value=c.dataRec||'';document.getElementById('fComp').value=c.dataComp||'';
+  document.getElementById('fPrazo').value=c.prazo||'';document.getElementById('fEnv').value=c.enviado||'';
+  document.getElementById('fObs').value=c.obs||'';limAlerta();openModal('modal-cheque');
+}
+function calcPrazo(){
+  const rec=document.getElementById('fRec').value||today();const p=parseInt(document.getElementById('fPrazo').value);
+  if(!isNaN(p)&&rec){const d=new Date(rec+'T12:00:00');d.setDate(d.getDate()+p);document.getElementById('fComp').value=d.toISOString().split('T')[0];}
+}
+function limAlerta(){
+  const cl=document.getElementById('fCli').value;const el=document.getElementById('limAlrt');
+  if(!cl){el.style.display='none';return;}
+  const lim=limites[cl]||0;const pend=cheques.filter(c=>c.cliente===cl&&stOf(c)!=='PAGO').reduce((a,c)=>a+c.valor,0);
+  if(lim>0&&pend>=lim){el.style.display='';el.style.cssText='display:block;background:var(--red-hl);color:var(--red);padding:.5rem .75rem;border-radius:var(--rm);font-size:.78rem;font-weight:600;margin-bottom:.5rem';el.textContent=`⛔ Limite excedido! Pendente: ${fmt(pend)} / Limite: ${fmt(lim)}`;}
+  else if(lim>0&&pend/lim>0.8){el.style.cssText='display:block;background:var(--amber-hl);color:var(--amber);padding:.5rem .75rem;border-radius:var(--rm);font-size:.78rem;font-weight:600;margin-bottom:.5rem';el.textContent=`⚠️ Atenção: ${fmt(pend)} de ${fmt(lim)} (${Math.round(pend/lim*100)}%)`;}
+  else el.style.display='none';
+}
+
+// ═══════════════════════════════════════════════════════
+// DETECÇÃO DE DUPLICATA DE CHEQUES
+// ═══════════════════════════════════════════════════════
+function erNormStr(s) {
+  return String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+}
+
+function chequeJaExiste(dados) {
+  // dados: {num, banco, valor, titular, dataComp}
+  const num    = erNormStr(dados.num);
+  const banco  = erNormStr(dados.banco).replace(/[^0-9]/g,'').slice(0,3); // só cód
+  const valor  = parseFloat(dados.valor)||0;
+  const titular= erNormStr(dados.titular);
+  const dataComp = dados.dataComp||'';
+
+  for (const c of cheques) {
+    const cNum   = erNormStr(c.num);
+    const cBanco = erNormStr(c.banco).replace(/[^0-9]/g,'').slice(0,3);
+    const cValor = parseFloat(c.valor)||0;
+    const cTit   = erNormStr(c.titular);
+    const cDc    = c.dataComp||'';
+
+    // Regra 1 — número + banco + valor (mais confiável)
+    if (num && cNum && banco && cBanco &&
+        num === cNum && banco === cBanco &&
+        Math.abs(valor - cValor) < 0.01) {
+      return {duplicado: true, motivo: `Nº ${c.num} / ${c.banco} / ${fmt(c.valor)} já existe (Cliente: ${c.cliente})`};
+    }
+
+    // Regra 2 — número + valor (sem banco informado)
+    if (num && cNum && num === cNum &&
+        Math.abs(valor - cValor) < 0.01 &&
+        (!banco || !cBanco)) {
+      return {duplicado: true, motivo: `Nº ${c.num} / ${fmt(c.valor)} já existe (Cliente: ${c.cliente})`};
+    }
+
+    // Regra 3 — titular + valor + data compensação (quando sem número)
+    if (!num && !cNum && titular && cTit &&
+        titular === cTit && dataComp && cDc &&
+        dataComp === cDc && Math.abs(valor - cValor) < 0.01) {
+      return {duplicado: true, motivo: `${c.titular} / ${fmt(c.valor)} / comp. ${fmtD(c.dataComp)} já existe (Cliente: ${c.cliente})`};
+    }
+  }
+  return {duplicado: false};
+}
+
+async function salvarCheque(){
+  const cl=document.getElementById('fCli').value;const ti=document.getElementById('fTit').value.trim();
+  const va=parseFloat(document.getElementById('fVal').value);const dc=document.getElementById('fComp').value;
+  if(!cl||!ti||!va||!dc){toast('Preencha campos obrigatórios.','warn');return;}
+  // Verificar duplicata (pula na edição)
+  if(!editChId){
+    const dup=chequeJaExiste({num:document.getElementById('fNum').value,banco:document.getElementById('fBanco').value,valor:va,titular:ti,dataComp:dc});
+    if(dup.duplicado){
+      if(!confirm('⚠️ Possível cheque duplicado!\n\n'+dup.motivo+'\n\nDeseja salvar mesmo assim?'))return;
+    }
+  }
+  const data={cliente:cl,titular:ti,num:document.getElementById('fNum').value,banco:document.getElementById('fBanco').value,
+    valor:va,dataRec:document.getElementById('fRec').value||today(),dataComp:dc,
+    prazo:document.getElementById('fPrazo').value,enviado:document.getElementById('fEnv').value,
+    obs:document.getElementById('fObs').value,status:'PENDENTE',borderoId:null,pagoEm:null};
+  if(editChId){data.id=editChId;Object.assign(cheques.find(x=>x.id===editChId),data);if(GAS_URL)await gas('saveCheque',data);toast('Cheque atualizado!','success');}
+  else{data.id=nid();cheques.push(data);if(GAS_URL){const r=await gas('saveCheque',data);if(r&&r.id)data.id=r.id;}toast('Cheque registrado!','success');}
+  saveLocal();closeModal('modal-cheque');renderChequesManosInit();updateNavBadges();
+}
+
+// ═══════════════════════════════════════════════════════
+// EXTRATO
+// ═══════════════════════════════════════════════════════
+function initExtrato(){
+  const s=document.getElementById('ext-cli');s.innerHTML='<option value="">Selecione...</option>';CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+}
+function renderExtrato(){
+  const cli=document.getElementById('ext-cli').value;const de=document.getElementById('ext-de').value;const ate=document.getElementById('ext-ate').value;
+  const el=document.getElementById('extrato-resultado');
+  if(!cli){el.innerHTML='';return;}
+  const lim=limites[cli]||0;const sv=getSaldoVendas(cli);const cp=getChequePend(cli);
+  const vList=vendas.filter(v=>v.cliente===cli&&(!de||v.data>=de)&&(!ate||v.data<=ate));
+  const cList=cheques.filter(c=>c.cliente===cli&&(!de||c.dataRec>=de)&&(!ate||c.dataRec<=ate));
+  const pList=pagamentos.filter(p=>p.cliente===cli&&(!de||p.data>=de)&&(!ate||p.data<=ate));
+  const tv=vList.reduce((s,v)=>s+(+v.total||0),0);
+  const tc=cList.reduce((s,c)=>s+(+c.valor||0),0);
+  const tp=pList.reduce((s,p)=>s+(+p.valor||0),0);
+  el.innerHTML=`
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--accent-hl);color:var(--accent);font-weight:700;font-size:1rem;display:flex;align-items:center;justify-content:center">${cli[0]}</div>
+        <div><div style="font-size:.95rem;font-weight:700">${cli}</div></div>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi a"><div class="kpi-label">Limite</div><div class="kpi-val">${lim?fmt(lim):'—'}</div></div>
+        <div class="kpi ${sv>0?'r':'g'}"><div class="kpi-label">Saldo Vendas</div><div class="kpi-val">${fmt(sv)}</div></div>
+        <div class="kpi w"><div class="kpi-label">Cheques Pend.</div><div class="kpi-val">${fmt(cp)}</div></div>
+        <div class="kpi ${lim>0&&(sv+cp)>lim?'r':'g'}"><div class="kpi-label">Disponível</div><div class="kpi-val">${lim?fmt(lim-sv-cp):'—'}</div></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-title">Vendas</div>
+      ${vList.length?`<div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Formas</th><th>Vencimento</th><th class="tr-r">Total</th></tr></thead><tbody>
+      ${vList.map(v=>{const f=v.formas?(typeof v.formas==='string'?JSON.parse(v.formas):v.formas):[];const fs=f.map(x=>`<span class="chip">${FL[x.forma]||x.forma}: ${fmt(x.valor)}</span>`).join(' ');return`<tr><td>${fmtD(v.data)}</td><td>${fs||'—'}</td><td>${fmtD(v.vencimento)}</td><td class="tr-r">${fmt(v.total)}</td></tr>`;}).join('')}
+      <tr><td colspan="3" class="fw7">Total</td><td class="tr-r fw7">${fmt(tv)}</td></tr>
+      </tbody></table></div>`:'<p style="color:var(--faint);font-size:.8rem">Nenhuma venda no período.</p>'}
+    </div>
+    <div class="card"><div class="card-title">Cheques</div>
+      ${cList.length?`<div class="tw"><table class="tbl"><thead><tr><th>Data Rec.</th><th>Titular</th><th>Nº</th><th>Vencimento</th><th>Status</th><th>Borderô</th><th class="tr-r">Valor</th></tr></thead><tbody>
+      ${cList.map(c=>{const st=stOf(c);return`<tr><td>${fmtD(c.dataRec)}</td><td>${c.titular||'—'}</td><td class="mono">${c.num||'—'}</td><td>${fmtD(c.dataComp)}</td><td>${pillHtml(st)}</td><td>${c.borderoId?`<span class="chip">#${String(c.borderoId).padStart(4,'0')}</span>`:'—'}</td><td class="tr-r mono">${fmt(c.valor)}</td></tr>`;}).join('')}
+      <tr><td colspan="6" class="fw7">Total</td><td class="tr-r mono fw7">${fmt(tc)}</td></tr>
+      </tbody></table></div>`:'<p style="color:var(--faint);font-size:.8rem">Nenhum cheque no período.</p>'}
+    </div>
+    <div class="card"><div class="card-title">Recebimentos</div>
+      ${pList.length?`<div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Forma</th><th>Observação</th><th class="tr-r">Valor</th></tr></thead><tbody>
+      ${pList.map(p=>`<tr><td>${fmtD(p.data)}</td><td><span class="chip">${p.forma}</span></td><td>${p.obs||'—'}</td><td class="tr-r mono">${fmt(p.valor)}</td></tr>`).join('')}
+      <tr><td colspan="3" class="fw7">Total</td><td class="tr-r mono fw7">${fmt(tp)}</td></tr>
+      </tbody></table></div>`:'<p style="color:var(--faint);font-size:.8rem">Nenhum recebimento no período.</p>'}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// RELATÓRIO
+// ═══════════════════════════════════════════════════════
+function initRelatorio(){
+  const s=document.getElementById('rel-cli');s.innerHTML='<option value="">Todos</option>';CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  const d=new Date();const m=String(d.getMonth()+1).padStart(2,'0');
+  document.getElementById('rel-de').value=`${d.getFullYear()}-${m}-01`;
+  document.getElementById('rel-ate').value=today();
+}
+let _rr=[];
+function gerarRelatorio(){
+  const de=document.getElementById('rel-de').value;const ate=document.getElementById('rel-ate').value;
+  const cli=document.getElementById('rel-cli').value;const tipo=document.getElementById('rel-tipo').value;
+  let rows=[];
+  if(!tipo||tipo==='venda')vendas.filter(v=>(!de||v.data>=de)&&(!ate||v.data<=ate)&&(!cli||v.cliente===cli)).forEach(v=>{const f=v.formas?(typeof v.formas==='string'?JSON.parse(v.formas):v.formas):[];const fs=f.map(x=>`${FL[x.forma]||x.forma}:${fmt(x.valor)}`).join(' + ');rows.push({tipo:'Venda',data:v.data,cliente:v.cliente,desc:fs||'—',valor:v.total});});
+  if(!tipo||tipo==='cheque')cheques.filter(c=>(!de||c.dataRec>=de)&&(!ate||c.dataRec<=ate)&&(!cli||c.cliente===cli)).forEach(c=>{const st=stOf(c);rows.push({tipo:'Cheque',data:c.dataRec,cliente:c.cliente,desc:`${c.titular} — Nº${c.num||'s/n'} — ${st}`,valor:c.valor});});
+  if(!tipo||tipo==='pagamento')pagamentos.filter(p=>(!de||p.data>=de)&&(!ate||p.data<=ate)&&(!cli||p.cliente===cli)).forEach(p=>{rows.push({tipo:'Recebimento',data:p.data,cliente:p.cliente,desc:p.obs||p.forma,valor:p.valor});});
+  rows.sort((a,b)=>a.data<b.data?-1:1);_rr=rows;
+  const tv=rows.filter(r=>r.tipo==='Venda').reduce((s,r)=>s+r.valor,0);
+  const tc=rows.filter(r=>r.tipo==='Cheque').reduce((s,r)=>s+r.valor,0);
+  const tp=rows.filter(r=>r.tipo==='Recebimento').reduce((s,r)=>s+r.valor,0);
+  document.getElementById('rel-resultado').innerHTML=`
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi a"><div class="kpi-label">Vendas</div><div class="kpi-val">${fmt(tv)}</div></div>
+      <div class="kpi w"><div class="kpi-label">Cheques</div><div class="kpi-val">${fmt(tc)}</div></div>
+      <div class="kpi g"><div class="kpi-label">Recebimentos</div><div class="kpi-val">${fmt(tp)}</div></div>
+    </div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Data</th><th>Tipo</th><th>Cliente</th><th>Descrição</th><th class="tr-r">Valor</th></tr></thead>
+    <tbody>${rows.length?rows.map(r=>{const p=r.tipo==='Venda'?'p-comp':r.tipo==='Cheque'?'p-bord':'p-pago';return`<tr><td>${fmtD(r.data)}</td><td><span class="pill ${p}">${r.tipo}</span></td><td class="fw7">${r.cliente}</td><td>${r.desc}</td><td class="tr-r mono">${fmt(r.valor)}</td></tr>`;}).join(''):'<tr class="empty-r"><td colspan="5">Sem registros no período.</td></tr>'}</tbody>
+    </table></div>`;
+}
+function exportCSV(){
+  if(!_rr.length)gerarRelatorio();
+  const data=[['Data','Tipo','Cliente','Descrição','Valor']].concat(_rr.map(r=>[fmtD(r.data),r.tipo,r.cliente,r.desc,r.valor]));
+  const csv=data.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`relatorio_${today()}.csv`;a.click();
+  toast('CSV exportado!','success');
+}
+
+// ═══════════════════════════════════════════════════════
+// CLIENTES
+// ═══════════════════════════════════════════════════════
+function renderClientes(){
+  const tbody=document.getElementById('tbl-clientes');
+  tbody.innerHTML=CLIENTES.map(cl=>{
+    const lim=limites[cl]||0;const sv=getSaldoVendas(cl);const cp=getChequePend(cl);const tot=sv+cp;
+    const disp=lim-tot;const pct=lim>0?tot/lim:null;
+    const st=lim===0?'<span class="chip">S/ limite</span>':pct>1?'<span class="pill p-venc">⛔ Excedido</span>':pct>0.8?'<span class="pill p-pend">⚠ Atenção</span>':'<span class="pill p-pago">✅ OK</span>';
+    return`<tr><td class="fw7">${cl}</td><td class="tr-r mono">${lim>0?fmt(lim):'—'}</td><td class="tr-r mono ${sv>0?'fw7':''}">${sv>0?fmt(sv):'—'}</td><td class="tr-r mono ${cp>0?'fw7':''}">${cp>0?fmt(cp):'—'}</td>
+      <td class="tr-r mono" style="${lim>0&&disp<0?'color:var(--red);font-weight:700':''}">${lim>0?fmt(disp):'—'}</td><td>${st}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-icon btn-sm" onclick="abrirLimite('${cl}',${lim})" title="Editar limite"><i data-lucide="pencil" style="width:11px;height:11px"></i></button>
+        <button class="btn-icon btn-sm" onclick="editarCliente('${cl}')" title="Editar cliente"><i data-lucide="settings" style="width:11px;height:11px"></i></button>
+      </td>
+    </tr>`;
+  }).join('')||'<tr class="empty-r"><td colspan="7">Nenhum cliente.</td></tr>';
+  lucide.createIcons();
+}
+function abrirNovoCliente(){document.getElementById('cli-id').value='';document.getElementById('cli-nome').value='';document.getElementById('cli-tel').value='';document.getElementById('cli-limite').value='';document.getElementById('cli-obs').value='';document.getElementById('mCliTit').textContent='Novo Cliente';openModal('modal-cliente');}
+function editarCliente(nome){
+  document.getElementById('cli-id').value=nome;document.getElementById('cli-nome').value=nome;
+  document.getElementById('cli-limite').value=limites[nome]||'';document.getElementById('mCliTit').textContent='Editar Cliente';
+  openModal('modal-cliente');
+}
+async function salvarCliente(){
+  const nome=document.getElementById('cli-nome').value.trim().toUpperCase();
+  const lim=parseFloat(document.getElementById('cli-limite').value)||0;
+  const antigo=document.getElementById('cli-id').value;
+  if(!nome){toast('Informe o nome.','warn');return;}
+  if(!antigo&&CLIENTES.includes(nome)){toast('Cliente já cadastrado.','warn');return;}
+  if(antigo&&antigo!==nome){const idx=CLIENTES.indexOf(antigo);if(idx>=0)CLIENTES[idx]=nome;delete limites[antigo];}
+  else if(!CLIENTES.includes(nome))CLIENTES.push(nome);
+  limites[nome]=lim;saveLocal();
+  if(GAS_URL)await gas('saveCliente',{nome,limite:lim});
+  closeModal('modal-cliente');renderClientes();toast('Cliente salvo!','success');
+}
+function abrirLimite(cl,lim){editLimCli=cl;document.getElementById('mLimTit').textContent='Limite: '+cl;document.getElementById('fLimV').value=lim;openModal('modal-limite');}
+async function salvarLimite(){
+  const v=parseFloat(document.getElementById('fLimV').value)||0;
+  limites[editLimCli]=v;saveLocal();closeModal('modal-limite');renderClientes();
+  if(GAS_URL)await gas('saveCliente',{nome:editLimCli,limite:v});
+  toast(`Limite de ${editLimCli} → ${fmt(v)}`,'success');
+}
+
+// ═══════════════════════════════════════════════════════
+// PRODUTOS
+// ═══════════════════════════════════════════════════════
+function renderProdutos(){
+  const tbody=document.getElementById('tbl-produtos');
+  tbody.innerHTML=produtos.map(p=>`<tr><td class="fw7">${p.nome}</td><td class="mono">${fmt(p.preco)}/m</td>
+    <td><button class="btn-icon btn-sm" onclick="editProd(${p.id})"><i data-lucide="pencil" style="width:11px;height:11px"></i></button>
+    <button class="btn-icon btn-sm" onclick="delProd(${p.id})" style="color:var(--red)"><i data-lucide="trash-2" style="width:11px;height:11px"></i></button></td></tr>`).join('')||'<tr class="empty-r"><td colspan="3">Nenhum produto.</td></tr>';
+  lucide.createIcons();
+}
+function limparProd(){document.getElementById('prod-id').value='';document.getElementById('prod-nome').value='';document.getElementById('prod-preco').value='';}
+function editProd(id){const p=produtos.find(x=>x.id===id);document.getElementById('prod-id').value=p.id;document.getElementById('prod-nome').value=p.nome;document.getElementById('prod-preco').value=p.preco;openModal('modal-produto');}
+function delProd(id){if(!confirm('Excluir?'))return;produtos=produtos.filter(p=>p.id!==id);saveLocal();renderProdutos();}
+function salvarProduto(){
+  const nome=document.getElementById('prod-nome').value.trim();if(!nome){toast('Informe o nome.','warn');return;}
+  const preco=parseFloat(document.getElementById('prod-preco').value)||0;
+  const id=parseInt(document.getElementById('prod-id').value)||null;
+  if(id){const i=produtos.findIndex(p=>p.id===id);if(i>=0)produtos[i]={id,nome,preco};}
+  else produtos.push({id:nid(),nome,preco});
+  saveLocal();closeModal('modal-produto');renderProdutos();toast('Produto salvo!','success');
+}
+
+// ═══════════════════════════════════════════════════════
+// ENTRADA RÁPIDA EM LOTE
+// ═══════════════════════════════════════════════════════
+const BANCOS = {
+  '001':'Banco do Brasil','003':'Banco da Amazônia','004':'BNB','021':'Banestes',
+  '033':'Santander','041':'Banrisul','047':'Banese','069':'Crefisa',
+  '077':'Inter','084':'Uniprime','085':'AILOS','086':'CECRED',
+  '099':'Uniprime Central','104':'Caixa Econômica Federal','121':'Agibank',
+  '136':'Unicred','133':'Cresol','151':'Nossa Caixa','172':'Albatross',
+  '197':'Stone','208':'BTG Pactual','212':'Banco Original','218':'BS2',
+  '237':'Bradesco','246':'ABC Brasil','248':'Banco Indusval',
+  '260':'Nu Pagamentos (Nubank)','290':'Pagseguro','318':'BMG',
+  '320':'CCB','336':'C6 Bank','341':'Itaú Unibanco','389':'Mercantil',
+  '394':'Banco Bradesco Financiamentos','399':'Kirton Bank',
+  '422':'Safra','453':'Rural','456':'MUFG','473':'Caixa Geral',
+  '477':'Citibank','479':'ItauBank','487':'Deutsche','488':'JPMorgan',
+  '505':'Credit Suisse','600':'Luso Brasileiro','604':'Industrial do Brasil',
+  '610':'VR','611':'Paulista','612':'Guanabara','613':'Pecunia',
+  '623':'PAN','626':'C6 Consignado','630':'Intercap','633':'Rendimento',
+  '634':'Triangulo','637':'Sofisa','643':'Pine','652':'Itaú Unibanco Holding',
+  '653':'Indusval','654':'A.J.Renner','655':'Neon / Votorantim','707':'Daycoval',
+  '719':'Banif','735':'Neon','739':'Cetelem','741':'Ribeirão Preto',
+  '743':'Semear','745':'Citibank','746':'Modal','747':'Rabobank',
+  '748':'Sicredi','751':'Scotiabank','752':'BNP Paribas','753':'NBC Bank',
+  '756':'Sicoob','757':'KEB Hana','955':'Cooperativa de Crédito Rural',
+};
+
+let erLinhas = [];
+let erIdCounter = 1;
+
+function initEntradaRapida() {
+  if (!erLinhas.length) {
+    erLinhas = [];
+    for (let i = 0; i < 5; i++) erAdicionarLinha();
+  }
+  erRenderTabela();
+}
+
+function erAdicionarLinha(dados = {}) {
+  erLinhas.push({
+    _eid: erIdCounter++,
+    cliente: dados.cliente || '',
+    titular: dados.titular || '',
+    num: dados.num || '',
+    banco: dados.banco || '',
+    valor: dados.valor || '',
+    dataRec: dados.dataRec || today(),
+    prazo: dados.prazo || '',
+    dataComp: dados.dataComp || '',
+    enviado: dados.enviado || '',
+    _ok: false,
+  });
+}
+
+function erAddLinha() {
+  erAdicionarLinha();
+  erRenderTabela();
+  // foca na primeira célula da nova linha
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#er-tbody tr');
+    if (rows.length) {
+      const last = rows[rows.length - 1];
+      const first = last.querySelector('input,select');
+      if (first) first.focus();
+    }
+  }, 50);
+}
+
+function erRenderTabela() {
+  const tbody = document.getElementById('er-tbody');
+  const cliOpts = CLIENTES.map(c => `<option value="${c}">${c}</option>`).join('');
+
+  tbody.innerHTML = erLinhas.map((ln, i) => {
+    const vazio = !ln.cliente && !ln.titular && !ln.valor;
+    const rowStyle = vazio ? '' : ln._erro ? 'background:var(--red-hl)' : 'background:var(--green-hl);opacity:.85';
+    return `<tr data-eid="${ln._eid}" style="${rowStyle};transition:background .2s">
+      <td style="padding:.28rem .5rem;border-bottom:1px solid var(--div);text-align:center;color:var(--faint);font-size:.72rem">${i+1}</td>
+      <td style="padding:.2rem .3rem;border-bottom:1px solid var(--div)">
+        <select class="er-inp" data-eid="${ln._eid}" data-f="cliente" onchange="erUpdate(${ln._eid},'cliente',this.value)" style="width:100%;min-width:120px">
+          <option value="">Selecione...</option>${cliOpts.replace(`value="${ln.cliente}"`,`value="${ln.cliente}" selected`)}
+        </select>
+      </td>
+      <td style="padding:.2rem .3rem;border-bottom:1px solid var(--div)">
+        <input class="er-inp" type="text" value="${ln.titular}" placeholder="Nome no cheque" data-eid="${ln._eid}" data-f="titular"
+          oninput="erUpdate(${ln._eid},'titular',this.value)" style="width:100%;min-width:150px">
+      </td>
+      <td style="padding:.2rem .3rem;border-bottom:1px solid var(--div)">
+        <input class="er-inp mono" type="text" value="${ln.num}" placeholder="000" data-eid="${ln._eid}" data-f="num"
+          oninput="erUpdate(${ln._eid},'num',this.value)" style="width:80px">
+      </td>
+      <td style="padding:.2rem .3rem;border-bottom:1px solid var(--div)">
+        <input class="er-inp" type="text" value="${ln.banco}" placeholder="Cód ou nome" data-eid="${ln._eid}" data-f="banco"
+          list="er-bancos-dl" oninput="erBancoInput(${ln._eid},this.value)" style="width:100%;min-width:120px">
+      </td>
+      <td style="padding:.2rem .3rem;border-bottom:1px solid var(--div)">
+        <input class="er-inp mono" type="number" value="${ln.valor}" placeholder="0,00" min="0" step="0.01" data-eid="${ln._eid}" data-f="valor"
+          oninput="erUpdate(${ln._eid},'valor',this.value);erAtualizarTotais()" style="width:90px">
+      </td>
+      <td style="padding:.2rem .3rem;border-bottom:1px solid var(--div)">
+        <input class="er-inp" type="date" value="${ln.dataRec}" data-eid="${ln._eid}" data-f="dataRec"
+          oninput="erUpdate(${ln._eid},'dataRec',this.value);erCalcComp(${ln._eid})" style="width:110px">
+      </td>
+      <td style="padding:.2rem .3rem;border-bottom:1px solid var(--div)">
+        <input class="er-inp" type="number" value="${ln.prazo}" placeholder="dias" min="0" data-eid="${ln._eid}" data-f="prazo"
+          oninput="erUpdate(${ln._eid},'prazo',this.value);erCalcComp(${ln._eid})" style="width:58px">
+      </td>
+      <td style="padding:.2rem .3rem;border-bottom:1px solid var(--div)">
+        <input class="er-inp" type="date" value="${ln.dataComp}" data-eid="${ln._eid}" data-f="dataComp"
+          oninput="erUpdate(${ln._eid},'dataComp',this.value)" style="width:110px">
+      </td>
+      <td style="padding:.2rem .3rem;border-bottom:1px solid var(--div)">
+        <input class="er-inp" type="text" value="${ln.enviado}" placeholder="Opcional" data-eid="${ln._eid}" data-f="enviado"
+          oninput="erUpdate(${ln._eid},'enviado',this.value)" style="width:90px">
+      </td>
+      <td style="padding:.2rem .4rem;border-bottom:1px solid var(--div)">
+        <button onclick="erRemoverLinha(${ln._eid})" style="color:var(--faint);background:none;border:none;cursor:pointer;padding:2px;border-radius:3px;line-height:1" title="Remover linha">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // datalist bancos
+  if (!document.getElementById('er-bancos-dl')) {
+    const dl = document.createElement('datalist');
+    dl.id = 'er-bancos-dl';
+    dl.innerHTML = Object.entries(BANCOS).map(([k,v]) => `<option value="${k} — ${v}">`).join('');
+    document.body.appendChild(dl);
+  }
+
+  // navegação por teclado
+  tbody.querySelectorAll('.er-inp').forEach(inp => {
+    inp.addEventListener('keydown', erKeyNav);
+  });
+
+  erAtualizarTotais();
+  lucide.createIcons();
+}
+
+function erUpdate(eid, field, value) {
+  const ln = erLinhas.find(l => l._eid === eid);
+  if (ln) { ln[field] = value; ln._erro = false; }
+}
+
+function erBancoInput(eid, value) {
+  const ln = erLinhas.find(l => l._eid === eid);
+  if (!ln) return;
+  // Extrai código do valor (ex: "341 — Itaú")
+  const cod = value.split('—')[0].trim().replace(/\D/g,'');
+  if (cod && BANCOS[cod]) {
+    ln.banco = cod + ' — ' + BANCOS[cod];
+    // atualiza o input visualmente
+    const inp = document.querySelector(`input[data-eid="${eid}"][data-f="banco"]`);
+    if (inp && inp !== document.activeElement) inp.value = ln.banco;
+  } else {
+    ln.banco = value;
+  }
+}
+
+function erCalcComp(eid) {
+  const ln = erLinhas.find(l => l._eid === eid);
+  if (!ln || !ln.prazo || !ln.dataRec) return;
+  const p = parseInt(ln.prazo);
+  if (isNaN(p)) return;
+  const d = new Date(ln.dataRec + 'T12:00:00');
+  d.setDate(d.getDate() + p);
+  ln.dataComp = d.toISOString().split('T')[0];
+  // atualiza input visualmente
+  const inp = document.querySelector(`input[data-eid="${eid}"][data-f="dataComp"]`);
+  if (inp) inp.value = ln.dataComp;
+}
+
+function erRemoverLinha(eid) {
+  erLinhas = erLinhas.filter(l => l._eid !== eid);
+  if (!erLinhas.length) erAdicionarLinha();
+  erRenderTabela();
+}
+
+function erLimpar() {
+  if (!confirm('Limpar todas as linhas?')) return;
+  erLinhas = [];
+  for (let i = 0; i < 5; i++) erAdicionarLinha();
+  erRenderTabela();
+  document.getElementById('er-resultado').innerHTML = '';
+}
+
+function erAtualizarTotais() {
+  const validas = erLinhas.filter(l => l.cliente && l.titular && parseFloat(l.valor) > 0 && l.dataComp);
+  const total = validas.reduce((s, l) => s + (parseFloat(l.valor) || 0), 0);
+  const qEl = document.getElementById('er-total-q');
+  const vEl = document.getElementById('er-total-v');
+  if (qEl) qEl.textContent = validas.length;
+  if (vEl) vEl.textContent = fmt(total);
+}
+
+function erKeyNav(e) {
+  const inp = e.target;
+  const eid = parseInt(inp.dataset.eid);
+  const field = inp.dataset.f;
+
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    // Vai para a próxima linha no mesmo campo
+    const allInField = [...document.querySelectorAll(`.er-inp[data-f="${field}"]`)];
+    const idx = allInField.indexOf(inp);
+    if (idx < allInField.length - 1) {
+      allInField[idx + 1].focus();
+    } else {
+      // última linha — adiciona nova
+      erAdicionarLinha();
+      erRenderTabela();
+      setTimeout(() => {
+        const newInps = document.querySelectorAll(`.er-inp[data-f="${field}"]`);
+        if (newInps.length) newInps[newInps.length - 1].focus();
+      }, 60);
+    }
+  }
+
+  if (e.key === 'Delete' && e.shiftKey) {
+    e.preventDefault();
+    erRemoverLinha(eid);
+  }
+}
+
+async function erSalvarTodos() {
+  const validas = erLinhas.filter(l => l.cliente && l.titular && parseFloat(l.valor) > 0 && l.dataComp);
+  if (!validas.length) { toast('Nenhuma linha válida. Preencha ao menos: Cliente, Titular, Valor e Compensação.', 'warn'); return; }
+
+  // ── Checar duplicatas antes de salvar ──────────────
+  const duplicatas = [];
+  validas.forEach((ln, i) => {
+    const dup = chequeJaExiste({num:ln.num, banco:ln.banco, valor:ln.valor, titular:ln.titular, dataComp:ln.dataComp});
+    if (dup.duplicado) duplicatas.push({linha: i+1, motivo: dup.motivo, ln});
+  });
+
+  if (duplicatas.length) {
+    const msgs = duplicatas.map(d => `• Linha ${d.linha}: ${d.motivo}`).join('\n');
+    const prosseguir = confirm(
+      `⚠️ ${duplicatas.length} cheque(s) possivelmente duplicado(s):\n\n${msgs}\n\nDeseja salvar mesmo assim?`
+    );
+    if (!prosseguir) {
+      // Marca as linhas duplicadas em vermelho
+      duplicatas.forEach(d => { d.ln._erro = true; });
+      erRenderTabela();
+      document.getElementById('er-resultado').innerHTML =
+        `<div class="alert alert-red">❌ Salvamento cancelado. Linhas duplicadas marcadas em vermelho.</div>`;
+      return;
+    }
+  }
+
+  let salvos = 0, erros = 0, pulados = 0;
+  const resultEl = document.getElementById('er-resultado');
+  resultEl.innerHTML = `<div class="alert" style="background:var(--blue-hl);color:var(--blue);border:1px solid rgba(0,99,160,.2)">⏳ Salvando ${validas.length} cheque(s)...</div>`;
+
+  for (const ln of validas) {
+    const obj = {
+      id: nid(),
+      cliente: ln.cliente,
+      titular: ln.titular.toUpperCase(),
+      num: ln.num,
+      banco: ln.banco,
+      valor: parseFloat(ln.valor),
+      dataRec: ln.dataRec || today(),
+      dataComp: ln.dataComp,
+      prazo: ln.prazo,
+      enviado: ln.enviado,
+      obs: '',
+      status: 'PENDENTE',
+      borderoId: null,
+      pagoEm: null,
+    };
+    cheques.push(obj);
+    ln._salvo = true;
+    salvos++;
+    if (GAS_URL) {
+      try { await gas('saveCheque', obj); } catch(e) { erros++; }
+    }
+  }
+
+  saveLocal();
+  updateNavBadges();
+
+  resultEl.innerHTML = `<div class="alert" style="background:var(--green-hl);color:var(--green);border:1px solid rgba(30,122,74,.2)">
+    ✅ ${salvos} cheque(s) salvos com sucesso!${erros ? ` (${erros} erro(s) ao enviar para o Sheets)` : ''}${pulados ? ` • ${pulados} pulado(s) por duplicata` : ''}
+    <button class="btn btn-sm btn-outline" style="margin-left:1rem" onclick="erLimpar()">Limpar e inserir mais</button>
+    <button class="btn btn-sm btn-primary" style="margin-left:.4rem" onclick="navTo('cheques-maos')">Ver cheques em mãos →</button>
+  </div>`;
+
+  // Remove linhas salvas
+  erLinhas = erLinhas.filter(l => !l._salvo);
+  if (!erLinhas.length) for (let i = 0; i < 3; i++) erAdicionarLinha();
+  erRenderTabela();
+}
+
+// ── Importar CSV / colar planilha ──────────────────────
+function erImportarCSV() {
+  document.getElementById('er-file-input').click();
+}
+
+function erProcessarArquivo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const text = e.target.result;
+    erParsarCSV(text);
+  };
+  reader.readAsText(file, 'UTF-8');
+  input.value = '';
+}
+
+function erParsarCSV(text) {
+  const linhas = text.trim().split('\n').filter(l => l.trim());
+  if (linhas.length < 2) { toast('Arquivo vazio ou sem dados.', 'warn'); return; }
+  // Detectar separador
+  const sep = linhas[0].includes(';') ? ';' : ',';
+  const headers = linhas[0].split(sep).map(h => h.trim().toLowerCase().replace(/[^a-z]/g,''));
+  const map = {
+    cliente:  headers.findIndex(h => h.includes('cliente')),
+    titular:  headers.findIndex(h => h.includes('titular') || h.includes('nome')),
+    num:      headers.findIndex(h => h.includes('num') || h.includes('cheque')),
+    banco:    headers.findIndex(h => h.includes('banco')),
+    valor:    headers.findIndex(h => h.includes('valor')),
+    dataRec:  headers.findIndex(h => h.includes('rec') || h.includes('receb')),
+    prazo:    headers.findIndex(h => h.includes('prazo')),
+    dataComp: headers.findIndex(h => h.includes('comp') || h.includes('venc')),
+    enviado:  headers.findIndex(h => h.includes('env') || h.includes('dest')),
+  };
+
+  let importados = 0;
+  linhas.slice(1).forEach(row => {
+    const cols = row.split(sep).map(c => c.trim().replace(/^"|"$/g,''));
+    const dados = {};
+    Object.entries(map).forEach(([k, idx]) => { if (idx >= 0 && cols[idx]) dados[k] = cols[idx]; });
+    if (!dados.titular && !dados.valor) return; // linha vazia
+    // normalizar valor
+    if (dados.valor) dados.valor = dados.valor.replace(/[^0-9,.]/g,'').replace(',','.');
+    erAdicionarLinha(dados);
+    importados++;
+  });
+
+  if (importados) {
+    erRenderTabela();
+    toast(`${importados} linha(s) importada(s) do arquivo!`, 'success');
+  } else {
+    toast('Nenhuma linha reconhecida. Verifique o formato.', 'warn');
+  }
+}
+
+function erDownloadModelo() {
+  const csv = [
+    ['cliente','titular','num','banco','valor','dataRec','prazo','dataComp','enviado'],
+    ['ALAN','MARIA SILVA LTDA','001','341 — Itaú','1500.00','2026-05-01','30','2026-05-31','Edine'],
+    ['ANDRE','JOÃO FERREIRA ME','002','033 — Santander','800.00','2026-05-01','','2026-05-15',''],
+  ].map(r => r.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'modelo_cheques.csv';
+  a.click();
+  toast('Modelo baixado!', 'success');
+}
+
+
+
+// ═══════════════════════════════════════════════════════
+// CONTAS A PAGAR — SISTEMA COMPLETO
+// ═══════════════════════════════════════════════════════
+// contasFixas  = títulos/contas (valor original, vencimento, fornecedor etc.)
+// contasPagamentos = pagamentos parciais ou totais vinculados a uma conta
+
+let contasFixas = [
+  {id:7001,nome:'Aluguel',fornecedor:'Proprietário',cat:'Aluguel',valorOriginal:3500,dia:5,recorrencia:'Mensal',inicio:'2026-01',obs:'',ativa:true},
+  {id:7002,nome:'Conta de Luz',fornecedor:'CEMIG',cat:'Água/Luz/Internet',valorOriginal:380,dia:10,recorrencia:'Mensal',inicio:'2026-01',obs:'',ativa:true},
+  {id:7003,nome:'Internet',fornecedor:'Net Claro',cat:'Água/Luz/Internet',valorOriginal:180,dia:15,recorrencia:'Mensal',inicio:'2026-01',obs:'',ativa:true},
+  {id:7004,nome:'Telefone',fornecedor:'Vivo',cat:'Telefone',valorOriginal:250,dia:20,recorrencia:'Mensal',inicio:'2026-01',obs:'',ativa:true},
+];
+let contasLancadas = []; // títulos gerados (parcelas mensais ou avulsas)
+let contasPagamentos = []; // pagamentos parciais/totais
+
+const CAT_ICONS = {
+  'Água/Luz/Internet':'💡','Telefone':'📱','Aluguel':'🏠',
+  'Fornecedor':'🏭','Financiamento':'🏦','Outra':'📄'
+};
+
+function mesAtual(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+function getTotalPago(contaId){
+  return contasPagamentos.filter(p=>p.contaId===contaId).reduce((s,p)=>s+(+p.valor||0),0);
+}
+
+function getSaldoConta(conta){
+  const pago=getTotalPago(conta.id);
+  return Math.max(0,(+conta.valorOriginal||0)-pago);
+}
+
+function stConta(conta){
+  const saldo=getSaldoConta(conta);
+  const pago=getTotalPago(conta.id);
+  if(saldo<=0)return'QUITADA';
+  const hoje=today();
+  if(conta.vencimento<hoje)return'VENCIDA';
+  if(pago>0)return'PARCIAL';
+  return'PENDENTE';
+}
+
+function pillConta(st){
+  const m={PENDENTE:'p-pend',QUITADA:'p-pago',VENCIDA:'p-venc',PARCIAL:'p-bord'};
+  return`<span class="pill ${m[st]||'p-pend'}">${st}</span>`;
+}
+
+// Gera parcelas mensais para um mês
+function gerarParcelasMes(mes){
+  const[y,m]=mes.split('-').map(Number);
+  contasFixas.filter(cf=>cf.ativa&&cf.recorrencia==='Mensal').forEach(cf=>{
+    const existe=contasLancadas.some(c=>c.fixaId===cf.id&&c.mes===mes);
+    if(existe)return;
+    const dia=Math.min(cf.dia,new Date(y,m,0).getDate());
+    const venc=`${mes}-${String(dia).padStart(2,'0')}`;
+    contasLancadas.push({
+      id:nid(),fixaId:cf.id,mes,nome:cf.nome,fornecedor:cf.fornecedor||'',
+      cat:cf.cat,valorOriginal:+cf.valorOriginal,vencimento:venc,
+      obs:cf.obs,recorrencia:'Mensal'
+    });
+  });
+  saveLocal();
+}
+
+function initContasPagar(){
+  // Gera parcelas dos últimos 2 meses e próximo
+  const d=new Date();
+  for(let i=-1;i<=2;i++){
+    const dt=new Date(d.getFullYear(),d.getMonth()+i,1);
+    const mes=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+    gerarParcelasMes(mes);
+  }
+  // Popula selects
+  const sm=document.getElementById('cp-filtro-mes');
+  if(sm){
+    const meses=[];
+    for(let i=-3;i<=3;i++){
+      const dt=new Date(d.getFullYear(),d.getMonth()+i,1);
+      const val=`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
+      const label=dt.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+      meses.push({val,label});
+    }
+    const cur=sm.value||mesAtual();
+    sm.innerHTML=meses.map(m=>`<option value="${m.val}" ${m.val===cur?'selected':''}>${m.label}</option>`).join('');
+  }
+  renderContasPagar();
+}
+
+function renderContasPagar(){
+  const mes=document.getElementById('cp-filtro-mes')?.value||mesAtual();
+  const fst=document.getElementById('cp-filtro-status')?.value||'';
+  gerarParcelasMes(mes);
+
+  let lista=contasLancadas.filter(c=>{
+    if(c.mes&&c.mes!==mes)return false;
+    if(!c.mes){
+      // avulsas: filtrar pelo mês do vencimento
+      const mv=c.vencimento?c.vencimento.substring(0,7):'';
+      if(mv!==mes)return false;
+    }
+    return true;
+  });
+  if(fst)lista=lista.filter(c=>stConta(c)===fst);
+  lista.sort((a,b)=>a.vencimento>b.vencimento?1:-1);
+
+  // KPIs
+  const todas=contasLancadas.filter(c=>{
+    const mv=(c.mes||c.vencimento?.substring(0,7)||'');
+    return mv===mes;
+  });
+  const totalOrig=todas.reduce((s,c)=>s+(+c.valorOriginal||0),0);
+  const totalPago=todas.reduce((s,c)=>s+getTotalPago(c.id),0);
+  const totalSaldo=todas.reduce((s,c)=>s+getSaldoConta(c),0);
+  const vencidas=todas.filter(c=>stConta(c)==='VENCIDA').length;
+  const parciais=todas.filter(c=>stConta(c)==='PARCIAL').length;
+
+  document.getElementById('cp-kpis').innerHTML=`
+    <div class="kpi a"><div class="kpi-label">Total a pagar</div><div class="kpi-val">${fmt(totalOrig)}</div><div class="kpi-sub">${todas.length} título(s)</div></div>
+    <div class="kpi g"><div class="kpi-label">Já pago</div><div class="kpi-val">${fmt(totalPago)}</div><div class="kpi-sub">${parciais} parcial(is)</div></div>
+    <div class="kpi ${vencidas>0?'r':'w'}"><div class="kpi-label">Saldo devedor</div><div class="kpi-val">${fmt(totalSaldo)}</div><div class="kpi-sub">${vencidas>0?vencidas+' vencida(s)':''}</div></div>
+    <div class="kpi ${totalPago/totalOrig>=1?'g':'w'}" style="border-color:rgba(0,0,0,.06)"><div class="kpi-label">% quitado</div><div class="kpi-val">${totalOrig?((totalPago/totalOrig)*100).toFixed(0)+'%':'—'}</div></div>`;
+
+  // Tabela
+  const tbody=document.getElementById('tbl-contas');
+  if(!lista.length){tbody.innerHTML='<tr class="empty-r"><td colspan="9">Nenhuma conta no período.</td></tr>';updateNavBadgesContas();return;}
+  tbody.innerHTML=lista.map(c=>{
+    const st=stConta(c);
+    const pago=getTotalPago(c.id);
+    const saldo=getSaldoConta(c);
+    const pct=c.valorOriginal>0?Math.min(100,(pago/c.valorOriginal)*100):0;
+    const barColor=pct>=100?'bar-green':pct>0?'bar-amber':'bar-red';
+    const icon=CAT_ICONS[c.cat]||'📄';
+    return`<tr>
+      <td><span style="font-size:.9rem">${icon}</span> <span class="fw7">${c.nome}</span>
+        ${c.fornecedor?`<div style="font-size:.75rem;color:var(--muted)">${c.fornecedor}</div>`:''}
+      </td>
+      <td><span class="chip">${c.cat}</span></td>
+      <td class="fw7">${fmtD(c.vencimento)}
+        ${st==='VENCIDA'?`<div style="font-size:.7rem;color:var(--red);font-weight:700">${Math.abs(diasV(c.vencimento))}d de atraso</div>`:''}
+      </td>
+      <td class="tr-r mono">${fmt(c.valorOriginal)}</td>
+      <td class="tr-r mono fw7" style="color:var(--green)">${pago>0?fmt(pago):'—'}</td>
+      <td class="tr-r mono fw7" style="color:${saldo>0?'var(--red)':'var(--green)'}">
+        ${fmt(saldo)}
+      </td>
+      <td>
+        <div class="bar-wrap" style="min-width:70px"><div class="bar ${barColor}" style="width:${pct}%"></div></div>
+        <div style="font-size:.68rem;color:var(--muted);margin-top:2px">${pct.toFixed(0)}%</div>
+      </td>
+      <td>${pillConta(st)}</td>
+      <td style="white-space:nowrap;display:flex;gap:4px;padding-top:8px">
+        ${st!=='QUITADA'?`<button class="btn btn-primary btn-sm" onclick="abrirPagConta(${c.id})"><i data-lucide="plus" style="width:11px;height:11px"></i> Pagar</button>`:''}
+        <button class="btn btn-outline btn-sm" onclick="verExtratoConta(${c.id})"><i data-lucide="list" style="width:11px;height:11px"></i></button>
+        ${st!=='QUITADA'&&pago===0?`<button class="btn btn-outline btn-sm" onclick="excluirConta(${c.id})" style="color:var(--red)"><i data-lucide="trash-2" style="width:11px;height:11px"></i></button>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+  lucide.createIcons();
+  updateNavBadgesContas();
+}
+
+function updateNavBadgesContas(){
+  const venc=contasLancadas.filter(c=>stConta(c)==='VENCIDA').length;
+  const pend5=contasLancadas.filter(c=>{
+    if(stConta(c)==='QUITADA')return false;
+    const d=diasV(c.vencimento);return d!==null&&d>=0&&d<=5;
+  }).length;
+  const total=venc+pend5;
+  const nb=document.getElementById('nb-contas');
+  if(nb){nb.textContent=total;nb.classList.toggle('show',total>0);}
+}
+
+function renderAlertasContas(){
+  const venc=contasLancadas.filter(c=>stConta(c)==='VENCIDA');
+  const pend5=contasLancadas.filter(c=>{
+    if(stConta(c)==='QUITADA')return false;
+    const d=diasV(c.vencimento);return d!==null&&d>=0&&d<=5;
+  });
+  return{venc,pend5};
+}
+
+// ── Pagamento parcial / total ─────────────────────────
+let _pagContaId=null;
+function abrirPagConta(id){
+  const c=contasLancadas.find(x=>x.id===id);if(!c)return;
+  _pagContaId=id;
+  const saldo=getSaldoConta(c);
+  const pago=getTotalPago(c.id);
+  document.getElementById('pc-id').value=id;
+  document.getElementById('pc-data').value=today();
+  document.getElementById('pc-valor').value=saldo.toFixed(2);
+  document.getElementById('pc-obs').value='';
+  document.getElementById('pc-info').innerHTML=`
+    <div class="fw7" style="font-size:.95rem">${c.nome}</div>
+    <div style="color:var(--muted);font-size:.8rem;margin-top:2px">${c.fornecedor||c.cat} • Vence: ${fmtD(c.vencimento)}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;margin-top:.65rem">
+      <div style="background:var(--s2);padding:.4rem .7rem;border-radius:var(--rm)">
+        <div style="font-size:.68rem;color:var(--muted)">Valor original</div>
+        <div style="font-weight:700;font-size:.95rem">${fmt(c.valorOriginal)}</div>
+      </div>
+      <div style="background:var(--green-hl);padding:.4rem .7rem;border-radius:var(--rm)">
+        <div style="font-size:.68rem;color:var(--muted)">Já pago</div>
+        <div style="font-weight:700;font-size:.95rem;color:var(--green)">${fmt(pago)}</div>
+      </div>
+      <div style="background:var(--red-hl);padding:.4rem .7rem;border-radius:var(--rm)">
+        <div style="font-size:.68rem;color:var(--muted)">Saldo devedor</div>
+        <div style="font-weight:700;font-size:.95rem;color:var(--red)">${fmt(saldo)}</div>
+      </div>
+    </div>`;
+  // Histórico de pagamentos já feitos
+  const hists=contasPagamentos.filter(p=>p.contaId===id);
+  const histHtml=hists.length?`
+    <div style="margin-top:.75rem;border-top:1px solid var(--div);padding-top:.65rem">
+      <div style="font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem">Pagamentos anteriores</div>
+      ${hists.map(p=>`<div style="display:flex;justify-content:space-between;font-size:.8rem;padding:3px 0;border-bottom:0.5px solid var(--div)">
+        <span>${fmtD(p.data)} — ${p.forma}${p.obs?' — '+p.obs:''}</span>
+        <span class="fw7" style="color:var(--green)">${fmt(p.valor)}</span>
+      </div>`).join('')}
+    </div>`:'';
+  document.getElementById('pc-info').innerHTML+=histHtml;
+  openModal('modal-pagar-conta');
+}
+
+function confirmarPagamentoConta(){
+  const id=parseInt(document.getElementById('pc-id').value);
+  const data=document.getElementById('pc-data').value;
+  const valor=parseFloat(document.getElementById('pc-valor').value);
+  const obs=document.getElementById('pc-obs').value;
+  const forma=document.getElementById('pc-forma').value;
+  if(!data||!valor||valor<=0){toast('Preencha data e valor.','warn');return;}
+  const c=contasLancadas.find(x=>x.id===id);if(!c)return;
+  const saldo=getSaldoConta(c);
+  if(valor>saldo+0.01){toast(`Valor (${fmt(valor)}) maior que o saldo (${fmt(saldo)}). Use o valor correto.`,'warn');return;}
+  const pag={id:nid(),contaId:id,data,valor,forma,obs,criadoEm:new Date().toISOString()};
+  contasPagamentos.push(pag);
+  saveLocal();
+  if(GAS_URL)gas('saveContaPagamento',pag);
+  closeModal('modal-pagar-conta');
+  renderContasPagar();
+  const novoSaldo=getSaldoConta(c);
+  if(novoSaldo<=0)toast(`✅ "${c.nome}" quitada!`,'success');
+  else toast(`Pagamento de ${fmt(valor)} registrado. Saldo restante: ${fmt(novoSaldo)}`,'success');
+}
+
+// ── Extrato da conta ──────────────────────────────────
+function verExtratoConta(id){
+  const c=contasLancadas.find(x=>x.id===id);if(!c)return;
+  const hists=contasPagamentos.filter(p=>p.contaId===id).sort((a,b)=>a.data>b.data?1:-1);
+  const pago=getTotalPago(id);
+  const saldo=getSaldoConta(c);
+  const st=stConta(c);
+  document.getElementById('ext-conta-content').innerHTML=`
+    <div style="border-bottom:2px solid var(--accent);padding-bottom:.75rem;margin-bottom:.85rem">
+      <div style="font-size:1rem;font-weight:700">${c.nome}</div>
+      <div style="font-size:.8rem;color:var(--muted)">${c.fornecedor||''} ${c.fornecedor&&c.cat?' • ':''} ${c.cat} • Vence: ${fmtD(c.vencimento)}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem;margin-bottom:1rem">
+      <div class="kpi a"><div class="kpi-label">Valor original</div><div class="kpi-val">${fmt(c.valorOriginal)}</div></div>
+      <div class="kpi g"><div class="kpi-label">Total pago</div><div class="kpi-val">${fmt(pago)}</div></div>
+      <div class="kpi ${saldo>0?'r':'g'}"><div class="kpi-label">Saldo devedor</div><div class="kpi-val">${fmt(saldo)}</div></div>
+      <div class="kpi"><div class="kpi-label">Status</div><div style="margin-top:4px">${pillConta(st)}</div></div>
+    </div>
+    ${hists.length?`
+    <div class="card-title">Histórico de pagamentos</div>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Data</th><th>Forma</th><th>Observação</th><th class="tr-r">Valor pago</th><th class="tr-r">Saldo após</th><th></th></tr></thead>
+      <tbody>
+        ${(()=>{let acum=0;return hists.map(p=>{
+          acum+=p.valor;
+          const saldoApos=Math.max(0,c.valorOriginal-acum);
+          return`<tr>
+            <td>${fmtD(p.data)}</td>
+            <td><span class="chip">${p.forma}</span></td>
+            <td class="tc">${p.obs||'—'}</td>
+            <td class="tr-r fw7 mono" style="color:var(--green)">${fmt(p.valor)}</td>
+            <td class="tr-r mono" style="color:${saldoApos>0?'var(--red)':'var(--green)'}">
+              ${fmt(saldoApos)}${saldoApos<=0?' ✅':''}
+            </td>
+            <td><button class="btn btn-outline btn-sm" style="color:var(--red)" onclick="estornarPagConta(${p.id})" title="Estornar"><i data-lucide="rotate-ccw" style="width:11px;height:11px"></i></button></td>
+          </tr>`;
+        }).join('');})()}
+      </tbody>
+      <tfoot>
+        <tr style="background:var(--s2)">
+          <td colspan="3" class="fw7">Total pago</td>
+          <td class="tr-r fw7 mono" style="color:var(--green)">${fmt(pago)}</td>
+          <td class="tr-r fw7 mono" style="color:${saldo>0?'var(--red)':'var(--green)'}">Saldo: ${fmt(saldo)}</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table></div>`
+    :'<p style="color:var(--faint);font-size:.85rem;padding:.5rem 0">Nenhum pagamento registrado ainda.</p>'}
+    ${c.obs?`<div style="margin-top:.75rem;font-size:.8rem;color:var(--muted)">Obs: ${c.obs}</div>`:''}`;
+  openModal('modal-extrato-conta');
+  lucide.createIcons();
+}
+
+function estornarPagConta(pagId){
+  if(!confirm('Estornar este pagamento?'))return;
+  contasPagamentos=contasPagamentos.filter(p=>p.id!==pagId);
+  saveLocal();
+  closeModal('modal-extrato-conta');
+  renderContasPagar();
+  toast('Pagamento estornado.','info');
+}
+
+function excluirConta(id){
+  if(!confirm('Excluir esta conta?'))return;
+  contasLancadas=contasLancadas.filter(x=>x.id!==id);
+  contasPagamentos=contasPagamentos.filter(p=>p.contaId!==id);
+  saveLocal();renderContasPagar();toast('Conta excluída.','info');
+}
+
+// ── Cadastro de conta fixa ────────────────────────────
+function abrirNovaContaFixa(){
+  document.getElementById('cf-id').value='';
+  document.getElementById('cf-nome').value='';
+  document.getElementById('cf-fornecedor').value='';
+  document.getElementById('cf-valor').value='';
+  document.getElementById('cf-dia').value='';
+  document.getElementById('cf-inicio').value=mesAtual();
+  document.getElementById('cf-obs').value='';
+  document.getElementById('mContaFixaTit').textContent='Nova Conta Fixa / Recorrente';
+  openModal('modal-conta-fixa');
+}
+
+function salvarContaFixa(){
+  const nome=document.getElementById('cf-nome').value.trim();
+  const valor=parseFloat(document.getElementById('cf-valor').value);
+  const dia=parseInt(document.getElementById('cf-dia').value);
+  if(!nome||!valor||!dia){toast('Preencha Nome, Valor e Dia.','warn');return;}
+  const id=parseInt(document.getElementById('cf-id').value)||null;
+  const obj={id:id||nid(),nome,fornecedor:document.getElementById('cf-fornecedor').value,
+    cat:document.getElementById('cf-cat').value,valorOriginal:valor,dia,
+    inicio:document.getElementById('cf-inicio').value||mesAtual(),
+    obs:document.getElementById('cf-obs').value,ativa:true,recorrencia:'Mensal'};
+  if(id){const i=contasFixas.findIndex(c=>c.id===id);if(i>=0)contasFixas[i]=obj;}
+  else contasFixas.push(obj);
+  saveLocal();
+  gerarParcelasMes(mesAtual());
+  closeModal('modal-conta-fixa');
+  initContasPagar();
+  if(GAS_URL)gas('saveContaFixa',obj);
+  toast(`Conta "${nome}" salva!`,'success');
+}
+
+// ── Conta avulsa (ex: fornecedor alto, financiamento) ─
+function abrirNovaContaAvulsa(){
+  document.getElementById('ca-nome').value='';
+  document.getElementById('ca-fornecedor').value='';
+  document.getElementById('ca-valor').value='';
+  document.getElementById('ca-venc').value=today();
+  document.getElementById('ca-obs').value='';
+  openModal('modal-conta-avulsa');
+}
+
+function salvarContaAvulsa(){
+  const nome=document.getElementById('ca-nome').value.trim();
+  const valor=parseFloat(document.getElementById('ca-valor').value);
+  const venc=document.getElementById('ca-venc').value;
+  if(!nome||!valor||!venc){toast('Preencha Nome, Valor e Vencimento.','warn');return;}
+  const mes=venc.substring(0,7);
+  const obj={id:nid(),fixaId:null,mes,nome,
+    fornecedor:document.getElementById('ca-fornecedor').value,
+    cat:document.getElementById('ca-cat').value,
+    valorOriginal:valor,vencimento:venc,
+    obs:document.getElementById('ca-obs').value,recorrencia:'Avulsa'};
+  contasLancadas.push(obj);saveLocal();
+  if(GAS_URL)gas('saveContaLancada',obj);
+  closeModal('modal-conta-avulsa');
+  initContasPagar();
+  toast(`Conta "${nome}" lançada!`,'success');
+}
+
+// ═══════════════════════════════════════════════════════
+// HISTÓRICO DE VENDAS + ROMANEIO
+// ═══════════════════════════════════════════════════════
+function initVendasHistorico(){
+  const s=document.getElementById('vh-cli');
+  if(s){
+    s.innerHTML='<option value="">Todos os clientes</option>';
+    CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  }
+  if(!document.getElementById('vh-de').value){
+    const d=new Date();const m=String(d.getMonth()+1).padStart(2,'0');
+    document.getElementById('vh-de').value=`${d.getFullYear()}-${m}-01`;
+    document.getElementById('vh-ate').value=today();
+  }
+  renderVendasHistorico();
+}
+
+function renderVendasHistorico(){
+  const de=document.getElementById('vh-de').value;
+  const ate=document.getElementById('vh-ate').value;
+  const cli=document.getElementById('vh-cli').value;
+  let lista=vendas.filter(v=>(!de||v.data>=de)&&(!ate||v.data<=ate)&&(!cli||v.cliente===cli))
+    .sort((a,b)=>b.data>a.data?1:-1);
+
+  const tv=lista.reduce((s,v)=>s+(+v.total||0),0);
+  const tq=lista.length;
+  const formasCount={};
+  lista.forEach(v=>{
+    const f=v.formas?(typeof v.formas==='string'?JSON.parse(v.formas):v.formas):[];
+    f.forEach(x=>{formasCount[x.forma]=(formasCount[x.forma]||0)+(+x.valor||0);});
+  });
+  const formasStr=Object.entries(formasCount).map(([k,v])=>`${FL[k]||k}: ${fmt(v)}`).join(' • ')||'—';
+  const kEl=document.getElementById('vh-kpis');
+  if(kEl)kEl.innerHTML=`
+    <div class="kpi a"><div class="kpi-label">Total Vendido</div><div class="kpi-val">${fmt(tv)}</div><div class="kpi-sub">${tq} venda(s)</div></div>
+    <div class="kpi g"><div class="kpi-label">Ticket Médio</div><div class="kpi-val">${tq?fmt(tv/tq):'—'}</div></div>
+    <div class="kpi" style="border-color:rgba(0,0,0,.06)"><div class="kpi-label">Por forma</div><div class="kpi-val" style="font-size:.85rem;line-height:1.4">${formasStr}</div></div>`;
+
+  const tbody=document.getElementById('tbl-vh');
+  if(!tbody)return;
+  if(!lista.length){tbody.innerHTML='<tr class="empty-r"><td colspan="7">Nenhuma venda no período.</td></tr>';return;}
+  tbody.innerHTML=lista.map(v=>{
+    const f=v.formas?(typeof v.formas==='string'?JSON.parse(v.formas):v.formas):[];
+    const fs=f.map(x=>`<span class="chip">${FL[x.forma]||x.forma}: ${fmt(x.valor)}</span>`).join(' ');
+    const itensCount=v.itens?v.itens.length:0;
+    return`<tr style="cursor:pointer" onclick="verRomaneio(${v.id})">
+      <td class="fw7">${fmtD(v.data)}</td>
+      <td class="fw7">${v.cliente}</td>
+      <td class="tc">${v.ref||'—'}</td>
+      <td>${itensCount} item(s)</td>
+      <td>${fs||'—'}</td>
+      <td class="tr-r fw7 mono">${fmt(v.total)}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();verRomaneio(${v.id})">
+        <i data-lucide="printer" style="width:11px;height:11px"></i> Romaneio
+      </button></td>
+    </tr>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function gerarHtmlRomaneio(v){
+  const f=v.formas?(typeof v.formas==='string'?JSON.parse(v.formas):v.formas):[];
+  const itens=v.itens||[];
+  const formasStr=f.map(x=>`${FL[x.forma]||x.forma}: ${fmt(x.valor)}`).join(' + ')||'—';
+  const num=String(v.id).padStart(5,'0');
+  return`<div id="romaneio-print-area" style="font-family:'DM Sans',sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #185FA5;padding-bottom:12px;margin-bottom:14px">
+      <div>
+        <div style="font-size:1rem;font-weight:700;color:#185FA5">ROMANEIO DE VENDA</div>
+        <div style="font-size:.75rem;color:#666;margin-top:2px">Nº ${num} — Emitido em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div style="text-align:right;font-size:.8rem;color:#444">
+        <div><strong>Data da venda:</strong> ${fmtD(v.data)}</div>
+        ${v.ref?`<div><strong>Referência:</strong> ${v.ref}</div>`:''}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#f5f5f5;border-radius:6px;padding:10px 14px;margin-bottom:14px;font-size:.82rem">
+      <div><strong>Cliente:</strong> ${v.cliente}</div>
+      <div><strong>Pagamento:</strong> ${formasStr}</div>
+      ${v.vencimento?`<div><strong>Vencimento:</strong> ${fmtD(v.vencimento)}</div>`:''}
+      ${v.obs?`<div style="grid-column:1/-1"><strong>Obs:</strong> ${v.obs}</div>`:''}
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:14px">
+      <thead><tr style="background:#185FA5;color:#fff">
+        <th style="padding:7px 10px;text-align:left">Produto / Tecido</th>
+        <th style="padding:7px 10px;text-align:center">Qtd / Metros</th>
+        <th style="padding:7px 10px;text-align:right">Preço Unit.</th>
+        <th style="padding:7px 10px;text-align:right">Subtotal</th>
+      </tr></thead>
+      <tbody>${itens.length?itens.map((it,i)=>`
+        <tr style="background:${i%2===0?'#fff':'#f9f9f9'}">
+          <td style="padding:7px 10px;border-bottom:1px solid #eee">${it.produto||'—'}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:center">${it.qtd||0}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-family:monospace">${fmt(it.preco||0)}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #eee;text-align:right;font-family:monospace">${fmt((+it.qtd||0)*(+it.preco||0))}</td>
+        </tr>`).join('')
+      :'<tr><td colspan="4" style="padding:12px;text-align:center;color:#888;font-style:italic">Sem itens detalhados</td></tr>'}
+      </tbody>
+    </table>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:24px">
+      <div style="background:#185FA5;color:#fff;padding:8px 18px;border-radius:6px;font-size:1rem;font-weight:700">Total: ${fmt(v.total)}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:32px">
+      <div style="border-top:1px solid #ccc;padding-top:6px;font-size:.72rem;color:#888;text-align:center">Vendedor(a)</div>
+      <div style="border-top:1px solid #ccc;padding-top:6px;font-size:.72rem;color:#888;text-align:center">Cliente / Assinatura</div>
+    </div>
+  </div>`;
+}
+
+function verRomaneio(id){
+  const v=vendas.find(x=>x.id===id);if(!v)return;
+  document.getElementById('romaneio-content').innerHTML=gerarHtmlRomaneio(v);
+  openModal('modal-romaneio');lucide.createIcons();
+}
+
+function printRomaneio(){
+  const c=document.getElementById('romaneio-print-area');if(!c)return;
+  const pa=document.getElementById('printArea');pa.innerHTML=c.outerHTML;window.print();
+  setTimeout(()=>pa.innerHTML='',2000);
+}
+
+function abrirRomaneioAposSalvar(vendaId){
+  const v=vendas.find(x=>x.id===vendaId);if(!v)return;
+  document.getElementById('romaneio-content').innerHTML=gerarHtmlRomaneio(v);
+  openModal('modal-romaneio');lucide.createIcons();
+}
+
+// ═══════════════════════════════════════════════════════
+// FECHAMENTO DE CAIXA DO DIA
+// ═══════════════════════════════════════════════════════
+function initCaixaDia(){
+  if(!document.getElementById('cx-data').value)
+    document.getElementById('cx-data').value=today();
+  renderCaixaDia();
+}
+
+function renderCaixaDia(){
+  const data=document.getElementById('cx-data').value||today();
+  const el=document.getElementById('cx-conteudo');
+  if(!el)return;
+
+  const vendasDia=vendas.filter(v=>v.data===data);
+  const pagsDia=pagamentos.filter(p=>p.data===data);
+  const chequesDia=cheques.filter(c=>c.dataRec===data);
+  const contasDia=contasLancadas.filter(c=>{
+    const pags=contasPagamentos.filter(p=>p.contaId===c.id&&p.data===data);
+    return pags.length>0;
+  });
+
+  const totalVendas=vendasDia.reduce((s,v)=>s+(+v.total||0),0);
+  const totalPagsReceb=pagsDia.reduce((s,p)=>s+(+p.valor||0),0);
+  const totalCheqReceb=chequesDia.reduce((s,c)=>s+(+c.valor||0),0);
+  const totalContasPagas=contasDia.reduce((s,c)=>{
+    return s+contasPagamentos.filter(p=>p.contaId===c.id&&p.data===data).reduce((ss,p)=>ss+(+p.valor||0),0);
+  },0);
+  const saldoDia=totalVendas+totalPagsReceb+totalCheqReceb-totalContasPagas;
+
+  const formasDia={};
+  vendasDia.forEach(v=>{
+    const f=v.formas?(typeof v.formas==='string'?JSON.parse(v.formas):v.formas):[];
+    f.forEach(x=>{formasDia[x.forma]=(formasDia[x.forma]||0)+(+x.valor||0);});
+  });
+  pagsDia.forEach(p=>{formasDia[p.forma]=(formasDia[p.forma]||0)+(+p.valor||0);});
+
+  const dataPtBR=new Date(data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  el.innerHTML=`<div id="caixa-print-area">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:1rem 1.25rem;margin-bottom:.75rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--accent);padding-bottom:.75rem;margin-bottom:.75rem">
+        <div>
+          <div style="font-size:1.1rem;font-weight:700;color:var(--accent)">FECHAMENTO DE CAIXA</div>
+          <div style="font-size:.8rem;color:var(--muted)">${dataPtBR}</div>
+        </div>
+        <div style="font-size:.75rem;color:var(--muted)">Gerado às ${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.65rem">
+        <div class="kpi a"><div class="kpi-label">Vendas</div><div class="kpi-val">${fmt(totalVendas)}</div><div class="kpi-sub">${vendasDia.length} venda(s)</div></div>
+        <div class="kpi g"><div class="kpi-label">Recebimentos</div><div class="kpi-val">${fmt(totalPagsReceb)}</div><div class="kpi-sub">${pagsDia.length} lançto(s)</div></div>
+        <div class="kpi t"><div class="kpi-label">Cheques Receb.</div><div class="kpi-val">${fmt(totalCheqReceb)}</div><div class="kpi-sub">${chequesDia.length} cheque(s)</div></div>
+        <div class="kpi r"><div class="kpi-label">Contas Pagas</div><div class="kpi-val">${fmt(totalContasPagas)}</div></div>
+        <div class="kpi ${saldoDia>=0?'g':'r'}"><div class="kpi-label">Saldo do Dia</div><div class="kpi-val">${fmt(saldoDia)}</div></div>
+      </div>
+    </div>
+    ${Object.keys(formasDia).length?`<div class="card">
+      <div class="card-title">Entradas por forma de pagamento</div>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+        ${Object.entries(formasDia).map(([k,v])=>`<div style="background:var(--s2);border-radius:var(--rm);padding:.5rem .85rem;border:1px solid var(--border)">
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:2px">${FL[k]||k}</div>
+          <div style="font-size:1rem;font-weight:700;color:var(--accent)">${fmt(v)}</div>
+        </div>`).join('')}
+      </div>
+    </div>`:''}
+    <div class="card">
+      <div class="card-title">Vendas do dia (${vendasDia.length})</div>
+      ${vendasDia.length?`<div class="tw"><table class="tbl">
+        <thead><tr><th>Cliente</th><th>Ref.</th><th>Itens</th><th>Formas</th><th class="tr-r">Total</th><th></th></tr></thead>
+        <tbody>${vendasDia.map(v=>{
+          const f=v.formas?(typeof v.formas==='string'?JSON.parse(v.formas):v.formas):[];
+          const fs=f.map(x=>`${FL[x.forma]||x.forma}: ${fmt(x.valor)}`).join(' + ');
+          return`<tr><td class="fw7">${v.cliente}</td><td class="tc">${v.ref||'—'}</td>
+            <td>${v.itens?v.itens.length:0} item(s)</td><td style="font-size:.8rem">${fs||'—'}</td>
+            <td class="tr-r fw7 mono">${fmt(v.total)}</td>
+            <td><button class="btn btn-outline btn-sm" onclick="verRomaneio(${v.id})"><i data-lucide="printer" style="width:11px;height:11px"></i></button></td>
+          </tr>`;
+        }).join('')}
+        <tr style="background:var(--s2)"><td colspan="4" class="fw7">Total vendas</td><td class="tr-r fw7 mono">${fmt(totalVendas)}</td><td></td></tr>
+        </tbody></table></div>`:'<p style="color:var(--faint);font-size:.85rem">Nenhuma venda hoje.</p>'}
+    </div>
+    ${chequesDia.length?`<div class="card">
+      <div class="card-title">Cheques recebidos (${chequesDia.length})</div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Cliente</th><th>Titular</th><th>Nº</th><th>Compensação</th><th class="tr-r">Valor</th></tr></thead>
+        <tbody>${chequesDia.map(c=>`<tr>
+          <td class="fw7">${c.cliente}</td><td>${c.titular||'—'}</td>
+          <td class="mono">${c.num||'—'}</td><td>${fmtD(c.dataComp)}</td>
+          <td class="tr-r mono fw7">${fmt(c.valor)}</td>
+        </tr>`).join('')}
+        <tr style="background:var(--s2)"><td colspan="4" class="fw7">Total</td><td class="tr-r fw7 mono">${fmt(totalCheqReceb)}</td></tr>
+        </tbody></table></div></div>`:''}
+    ${pagsDia.length?`<div class="card">
+      <div class="card-title">Recebimentos (${pagsDia.length})</div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>Cliente</th><th>Forma</th><th>Observação</th><th class="tr-r">Valor</th></tr></thead>
+        <tbody>${pagsDia.map(p=>`<tr>
+          <td class="fw7">${p.cliente}</td><td><span class="chip">${p.forma}</span></td>
+          <td class="tc">${p.obs||'—'}</td><td class="tr-r mono fw7">${fmt(p.valor)}</td>
+        </tr>`).join('')}
+        <tr style="background:var(--s2)"><td colspan="3" class="fw7">Total</td><td class="tr-r fw7 mono">${fmt(totalPagsReceb)}</td></tr>
+        </tbody></table></div></div>`:''}
+    <div style="background:${saldoDia>=0?'var(--green-hl)':'var(--red-hl)'};border:1px solid ${saldoDia>=0?'rgba(30,122,74,.2)':'rgba(184,50,50,.2)'};border-radius:var(--rl);padding:1rem 1.25rem;display:flex;justify-content:space-between;align-items:center;margin-top:.5rem">
+      <span style="font-size:.9rem;font-weight:600;color:${saldoDia>=0?'var(--green)':'var(--red)'}">${saldoDia>=0?'✅ Saldo positivo':'⚠ Saldo negativo'}</span>
+      <span style="font-size:1.4rem;font-weight:700;color:${saldoDia>=0?'var(--green)':'var(--red)'};">${fmt(saldoDia)}</span>
+    </div>
+  </div>`;
+  lucide.createIcons();
+}
+
+function printCaixa(){
+  const c=document.getElementById('caixa-print-area');if(!c)return;
+  const pa=document.getElementById('printArea');pa.innerHTML=c.innerHTML;window.print();
+  setTimeout(()=>pa.innerHTML='',2000);
+}
+
+// ═══════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════
+let _dark=false;
+function toggleTheme(){_dark=!_dark;document.documentElement.setAttribute('data-theme',_dark?'dark':'light');const b=document.querySelector('[data-tt]');b.innerHTML=`<i data-lucide="${_dark?'sun':'moon'}" style="width:14px;height:14px"></i>`;lucide.createIcons(b);}
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded',()=>{
+  loadLocal();
+  lucide.createIcons();
+  CLIENTES.forEach(cl=>{if(limites[cl]===undefined)limites[cl]=0;});
+  document.getElementById('dashDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  // URL já fixada — sincroniza sempre ao abrir
+  setTimeout(syncAll, 400);
+  renderPainel();updateNavBadges();
+  // Auto-sync a cada 5 minutos
+  setInterval(()=>{if(IS_ONLINE)syncAll();},5*60*1000);
+  setTimeout(()=>{if(!GAS_URL)toast('Configure o Google Sheets em "⚙ Google Sheets" para salvar os dados na nuvem.','info');},1000);
+});
+</script>
+
+<!-- EDITAR BORDERÔ -->
+<div class="overlay" id="modal-editar-bord" onclick="cbk(event,'modal-editar-bord')"><div class="modal" style="max-width:780px">
+  <div class="modal-hdr">
+    <span class="modal-title">Editar Borderô <span style="color:var(--teal)">#<span id="eb-num"></span></span></span>
+    <button class="btn-icon" onclick="closeModal('modal-editar-bord')"><i data-lucide="x"></i></button>
+  </div>
+  <input type="hidden" id="eb-id">
+
+  <!-- Dados do borderô -->
+  <div class="form-grid" style="margin-bottom:.85rem">
+    <div class="fg"><label>Destinatário</label><input id="eb-dest" type="text"></div>
+    <div class="fg"><label>Responsável</label><input id="eb-resp" type="text"></div>
+    <div class="fg"><label>Data de envio</label><input id="eb-data" type="date"></div>
+    <div class="fg"><label>Observação</label><input id="eb-obs-ed" type="text"></div>
+  </div>
+
+  <!-- Cheques do borderô -->
+  <div class="card-title">Cheques incluídos <span style="color:var(--muted);font-weight:400">— clique em Remover para devolver um cheque para "Em Mãos"</span></div>
+  <div style="overflow-x:auto;border-radius:var(--rl);border:1px solid var(--border);background:var(--surface);margin-bottom:.85rem">
+    <table class="tbl"><thead><tr>
+      <th>Cliente</th><th>Titular</th><th>Nº</th><th>Vencimento</th><th class="tr-r">Valor</th><th>Ação</th>
+    </tr></thead><tbody id="eb-tbody"></tbody></table>
+  </div>
+
+  <!-- Total -->
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-top:1px solid var(--div);margin-bottom:.75rem">
+    <span id="eb-qtd" style="font-size:.78rem;color:var(--muted)"></span>
+    <span style="font-size:1rem;font-weight:700;color:var(--accent)" id="eb-total"></span>
+  </div>
+
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-editar-bord')">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarEdicaoBordereau()"><i data-lucide="save" style="width:11px;height:11px"></i> Salvar alterações</button>
+  </div>
+</div></div>
+
+<!-- REVISÃO DE BORDERÔ -->
+<div class="overlay" id="modal-revisao-bord" onclick="cbk(event,'modal-revisao-bord')"><div class="modal" style="max-width:820px">
+  <div class="modal-hdr">
+    <div>
+      <span class="modal-title">📋 Revisão do Borderô</span>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:.1rem">Confira os dados antes de emitir. Cheques errados podem ser removidos aqui.</div>
+    </div>
+    <button class="btn-icon" onclick="closeModal('modal-revisao-bord')"><i data-lucide="x"></i></button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:.65rem;background:var(--s2);border-radius:var(--rm);padding:.85rem;margin-bottom:1rem">
+    <div><div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.2rem">Destinatário</div><div class="fw7" id="rev-dest"></div></div>
+    <div><div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.2rem">Responsável</div><div class="fw7" id="rev-resp"></div></div>
+    <div><div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.2rem">Data de Envio</div><div id="rev-data"></div></div>
+    <div><div style="font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:.2rem">Observação</div><div style="color:var(--muted);font-size:.78rem" id="rev-obs"></div></div>
+  </div>
+  <div style="background:var(--amber-hl);border:1px solid rgba(138,95,0,.2);border-radius:var(--rm);padding:.6rem .9rem;font-size:.75rem;color:var(--amber);font-weight:600;margin-bottom:.85rem;display:flex;align-items:center;gap:.5rem">
+    <i data-lucide="alert-triangle" style="width:14px;height:14px;flex-shrink:0"></i>
+    Verifique cada cheque. Use <strong style="margin:0 .25rem">Remover</strong> para retirar qualquer cheque incorreto antes de emitir.
+  </div>
+  <div style="overflow-x:auto;border-radius:var(--rl);border:1px solid var(--border);background:var(--surface);margin-bottom:.85rem">
+    <table class="tbl">
+      <thead><tr><th style="width:28px">#</th><th>Cliente</th><th>Titular</th><th>Nº</th><th>Banco</th><th>Compensação</th><th class="tr-r">Valor</th><th>Ação</th></tr></thead>
+      <tbody id="rev-tbody"></tbody>
+    </table>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:.65rem 0;border-top:2px solid var(--border)">
+    <span style="font-size:.78rem;color:var(--muted)" id="rev-qtd"></span>
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <span style="font-size:.85rem;color:var(--muted)">Total:</span>
+      <span style="font-size:1.2rem;font-weight:700;color:var(--teal)" id="rev-total"></span>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-revisao-bord')"><i data-lucide="arrow-left" style="width:11px;height:11px"></i> Voltar e corrigir</button>
+    <button class="btn btn-teal" onclick="confirmarEmissaoBordereau()"><i data-lucide="send" style="width:11px;height:11px"></i> Confirmar e Emitir Borderô</button>
+  </div>
+</div></div>
+
+
+<!-- NOVA CONTA FIXA -->
+<div class="overlay" id="modal-conta-fixa" onclick="cbk(event,'modal-conta-fixa')"><div class="modal" style="max-width:520px">
+  <div class="modal-hdr">
+    <span class="modal-title" id="mContaFixaTit">Nova Conta Fixa</span>
+    <button class="btn-icon" onclick="closeModal('modal-conta-fixa')"><i data-lucide="x"></i></button>
+  </div>
+  <input type="hidden" id="cf-id">
+  <div class="form-grid" style="margin-bottom:.65rem">
+    <div class="fg"><label>Nome da conta *</label><input id="cf-nome" type="text" placeholder="Ex: Aluguel, Fornecedor ABC..."></div>
+    <div class="fg"><label>Fornecedor / Credor</label><input id="cf-fornecedor" type="text" placeholder="Nome do fornecedor"></div>
+    <div class="fg"><label>Categoria</label>
+      <select id="cf-cat">
+        <option value="Água/Luz/Internet">Água / Luz / Internet</option>
+        <option value="Telefone">Telefone</option>
+        <option value="Aluguel">Aluguel</option>
+        <option value="Fornecedor">Fornecedor fixo</option>
+        <option value="Financiamento">Financiamento / Empréstimo</option>
+        <option value="Outra">Outra</option>
+      </select>
+    </div>
+    <div class="fg"><label>Valor (R$) *</label><input id="cf-valor" type="number" min="0" step="0.01" placeholder="0,00"></div>
+    <div class="fg"><label>Dia de vencimento *</label><input id="cf-dia" type="number" min="1" max="31" placeholder="Ex: 10"></div>
+    <div class="fg"><label>Mês início</label><input id="cf-inicio" type="month"></div>
+    <div class="fg"><label>Observação</label><input id="cf-obs" type="text" placeholder="Opcional"></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-conta-fixa')">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarContaFixa()">Salvar</button>
+  </div>
+</div></div>
+
+<!-- LANÇAR CONTA AVULSA -->
+<div class="overlay" id="modal-conta-avulsa" onclick="cbk(event,'modal-conta-avulsa')"><div class="modal" style="max-width:520px">
+  <div class="modal-hdr">
+    <span class="modal-title">Lançar Conta</span>
+    <button class="btn-icon" onclick="closeModal('modal-conta-avulsa')"><i data-lucide="x"></i></button>
+  </div>
+  <div class="form-grid" style="margin-bottom:.65rem">
+    <div class="fg"><label>Nome da conta *</label><input id="ca-nome" type="text" placeholder="Ex: Fatura fornecedor, Parcela..."></div>
+    <div class="fg"><label>Fornecedor / Credor</label><input id="ca-fornecedor" type="text" placeholder="Nome do fornecedor"></div>
+    <div class="fg"><label>Categoria</label>
+      <select id="ca-cat">
+        <option value="Água/Luz/Internet">Água / Luz / Internet</option>
+        <option value="Telefone">Telefone</option>
+        <option value="Aluguel">Aluguel</option>
+        <option value="Fornecedor">Fornecedor fixo</option>
+        <option value="Financiamento">Financiamento / Empréstimo</option>
+        <option value="Outra">Outra</option>
+      </select>
+    </div>
+    <div class="fg"><label>Valor total da conta (R$) *</label><input id="ca-valor" type="number" min="0" step="0.01" placeholder="0,00"></div>
+    <div class="fg"><label>Vencimento *</label><input id="ca-venc" type="date"></div>
+    <div class="fg"><label>Observação</label><input id="ca-obs" type="text" placeholder="Ex: Fatura março, parcela 1/3..."></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-conta-avulsa')">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarContaAvulsa()">Salvar</button>
+  </div>
+</div></div>
+
+<!-- PAGAR CONTA -->
+<div class="overlay" id="modal-pagar-conta" onclick="cbk(event,'modal-pagar-conta')"><div class="modal" style="max-width:420px">
+  <div class="modal-hdr">
+    <span class="modal-title">Registrar Pagamento</span>
+    <button class="btn-icon" onclick="closeModal('modal-pagar-conta')"><i data-lucide="x"></i></button>
+  </div>
+  <input type="hidden" id="pc-id">
+  <div id="pc-info" style="background:var(--s2);border-radius:var(--rm);padding:.65rem .85rem;margin-bottom:.75rem;font-size:.8rem"></div>
+  <div class="form-grid" style="margin-bottom:.65rem">
+    <div class="fg"><label>Data do pagamento *</label><input id="pc-data" type="date"></div>
+    <div class="fg"><label>Valor pago (R$) *</label><input id="pc-valor" type="number" min="0" step="0.01"></div>
+    <div class="fg"><label>Forma</label>
+      <select id="pc-forma">
+        <option value="Dinheiro">Dinheiro</option>
+        <option value="Pix">Pix</option>
+        <option value="Débito">Débito</option>
+        <option value="Boleto">Boleto</option>
+        <option value="Transferência">Transferência</option>
+      </select>
+    </div>
+    <div class="fg"><label>Observação</label><input id="pc-obs" type="text"></div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-pagar-conta')">Cancelar</button>
+    <button class="btn btn-primary" onclick="confirmarPagamentoConta()">Confirmar Pagamento</button>
+  </div>
+</div></div>
+
+
+<!-- ROMANEIO DE VENDA -->
+<div class="overlay" id="modal-romaneio" onclick="cbk(event,'modal-romaneio')"><div class="modal" style="max-width:680px">
+  <div class="modal-hdr">
+    <span class="modal-title">Romaneio de Venda</span>
+    <button class="btn-icon" onclick="closeModal('modal-romaneio')"><i data-lucide="x"></i></button>
+  </div>
+  <div id="romaneio-content"></div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-romaneio')">Fechar</button>
+    <button class="btn btn-primary" onclick="printRomaneio()"><i data-lucide="printer" style="width:12px;height:12px"></i> Imprimir / Salvar PDF</button>
+  </div>
+</div></div>
+
+
+<!-- EXTRATO DA CONTA -->
+<div class="overlay" id="modal-extrato-conta" onclick="cbk(event,'modal-extrato-conta')"><div class="modal" style="max-width:700px">
+  <div class="modal-hdr">
+    <span class="modal-title">Extrato da Conta</span>
+    <button class="btn-icon" onclick="closeModal('modal-extrato-conta')"><i data-lucide="x"></i></button>
+  </div>
+  <div id="ext-conta-content"></div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-extrato-conta')">Fechar</button>
+    <button class="btn btn-primary" onclick="closeModal('modal-extrato-conta');abrirPagConta(_pagContaId)">
+      <i data-lucide="plus" style="width:12px;height:12px"></i> Registrar pagamento
+    </button>
+  </div>
+</div></div>
+
+</body>
+</html>
