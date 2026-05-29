@@ -225,6 +225,17 @@ table{border-collapse:collapse;width:100%}
 }
 [data-tt]{width:30px;height:30px;border-radius:var(--rm);display:flex;align-items:center;justify-content:center;color:var(--muted)}
 [data-tt]:hover{background:var(--s2)}
+/* Fornecedores */
+.forn-saldo-pos{color:var(--red);font-weight:700}
+.forn-saldo-neg{color:var(--green);font-weight:700}
+.forn-saldo-zero{color:var(--faint)}
+.mov-timeline{display:flex;flex-direction:column;gap:.4rem;max-height:400px;overflow-y:auto;padding:.25rem 0}
+.mov-item{display:flex;align-items:flex-start;gap:.6rem;padding:.5rem .65rem;border-radius:var(--rm);background:var(--s2);font-size:.78rem}
+.mov-item .mov-icon{font-size:1rem;flex-shrink:0;margin-top:1px}
+.mov-item .mov-body{flex:1}
+.mov-item .mov-val{font-weight:700;white-space:nowrap}
+.mov-item .mov-val.cred{color:var(--red)}
+.mov-item .mov-val.deb{color:var(--green)}
 </style>
 </head>
 <body>
@@ -281,6 +292,8 @@ table{border-collapse:collapse;width:100%}
     <div class="nav-sec">Cadastros</div>
     <button class="nav-item" onclick="navTo('clientes',this)"><i data-lucide="users"></i>Clientes / Limites</button>
     <button class="nav-item" onclick="navTo('produtos',this)"><i data-lucide="package"></i>Produtos</button>
+    <button class="nav-item" onclick="navTo('fornecedores',this)"><i data-lucide="truck"></i>Fornecedores
+      <span class="nav-badge" id="nb-fornecedores"></span></button>
     <div class="conn-row"><span class="conn-dot" id="connDot"></span><span class="conn-label" id="connLabel">Não conectado</span></div>
   </nav>
 
@@ -322,11 +335,11 @@ table{border-collapse:collapse;width:100%}
         <div class="pag-section">
           <div class="pag-title">Forma de Pagamento</div>
           <div class="formas-grid">
-            <div class="forma-card" data-f="prazo" onclick="toggleForma('prazo',this)"><div class="fi">📋</div><div class="fn">A Prazo</div></div>
-            <div class="forma-card" data-f="dinheiro" onclick="toggleForma('dinheiro',this)"><div class="fi">💵</div><div class="fn">Dinheiro</div></div>
-            <div class="forma-card" data-f="pix" onclick="toggleForma('pix',this)"><div class="fi">⚡</div><div class="fn">Pix</div></div>
-            <div class="forma-card" data-f="cartao" onclick="toggleForma('cartao',this)"><div class="fi">💳</div><div class="fn">Cartão</div></div>
-            <div class="forma-card" data-f="cheque" onclick="toggleForma('cheque',this)"><div class="fi">✱</div><div class="fn">Cheque</div></div>
+            <div class="forma-card" data-f="prazo" onclick="toggleForma('prazo')"><div class="fi">📋</div><div class="fn">A Prazo</div></div>
+            <div class="forma-card" data-f="dinheiro" onclick="toggleForma('dinheiro')"><div class="fi">💵</div><div class="fn">Dinheiro</div></div>
+            <div class="forma-card" data-f="pix" onclick="toggleForma('pix')"><div class="fi">⚡</div><div class="fn">Pix</div></div>
+            <div class="forma-card" data-f="cartao" onclick="toggleForma('cartao')"><div class="fi">💳</div><div class="fn">Cartão</div></div>
+            <div class="forma-card" data-f="cheque" onclick="toggleForma('cheque')"><div class="fi">✱</div><div class="fn">Cheque</div></div>
           </div>
           <div id="formas-valores" class="forma-rows"></div>
           <div id="vencimento-area" style="display:none;margin-top:.65rem">
@@ -564,7 +577,9 @@ table{border-collapse:collapse;width:100%}
     <!-- RELATÓRIO -->
     <div id="view-relatorio" class="view">
       <div class="ph"><div class="ph-title">Relatório por Período</div></div>
-      <div class="card">
+      <!-- Relatório clientes -->
+      <div class="card" style="margin-bottom:.75rem">
+        <div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:.5rem">📊 Clientes — Vendas / Cheques / Recebimentos</div>
         <div class="form-grid">
           <div class="fg"><label>De</label><input type="date" id="rel-de"></div>
           <div class="fg"><label>Até</label><input type="date" id="rel-ate"></div>
@@ -577,6 +592,20 @@ table{border-collapse:collapse;width:100%}
         </div>
       </div>
       <div id="rel-resultado"></div>
+      <!-- Relatório fornecedores -->
+      <div class="card" style="margin-top:1rem">
+        <div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:.5rem">🏭 Fornecedor — Conta-Corrente por Período</div>
+        <div class="form-grid">
+          <div class="fg"><label>Fornecedor *</label><select id="rel-forn"><option value="">Selecione...</option></select></div>
+          <div class="fg"><label>De</label><input type="date" id="rel-forn-de"></div>
+          <div class="fg"><label>Até</label><input type="date" id="rel-forn-ate"></div>
+        </div>
+        <div class="form-actions" style="border:none;padding:0;margin:0">
+          <button class="btn btn-outline" onclick="gerarRelatorioFornecedor()">Gerar</button>
+          <button class="btn btn-green" onclick="exportCSVFornecedor()"><i data-lucide="download" style="width:11px;height:11px"></i> Exportar Excel</button>
+        </div>
+      </div>
+      <div id="rel-forn-resultado"></div>
     </div>
 
     <!-- CLIENTES -->
@@ -593,6 +622,56 @@ table{border-collapse:collapse;width:100%}
         <button class="btn btn-primary btn-sm" onclick="limparProd();openModal('modal-produto')"><i data-lucide="plus" style="width:11px;height:11px"></i> Novo</button>
       </div>
       <div class="tw"><table class="tbl"><thead><tr><th>Produto / Tecido</th><th>Preço Base (R$/m)</th><th>Ações</th></tr></thead><tbody id="tbl-produtos"></tbody></table></div>
+    </div>
+
+    <!-- FORNECEDORES -->
+    <div id="view-fornecedores" class="view">
+      <div class="ph">
+        <div><div class="ph-title">Fornecedores</div><div class="ph-sub">Conta-corrente — clique em um fornecedor para ver o extrato</div></div>
+        <button class="btn btn-primary btn-sm" onclick="abrirNovoFornecedor()"><i data-lucide="plus" style="width:11px;height:11px"></i> Novo Fornecedor</button>
+      </div>
+      <!-- Cards de fornecedores com saldo -->
+      <div id="forn-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.75rem;margin-bottom:1rem"></div>
+      <!-- Extrato inline -->
+      <div id="forn-extrato-inline" style="display:none">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+            <div class="card-title" id="forn-extrato-titulo" style="margin:0">Extrato</div>
+            <button onclick="fecharExtratoInline()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
+          </div>
+          <div id="extrato-forn-saldo" style="margin-bottom:.75rem"></div>
+          <div class="mov-timeline" id="extrato-forn-timeline"></div>
+          <div style="margin-top:.75rem;border-top:1px solid var(--div);padding-top:.75rem">
+            <div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:.6rem">Lançamento Manual</div>
+            <div style="display:flex;gap:.5rem;margin-bottom:.65rem">
+              <button class="btn btn-sm" onclick="abrirLancForn('debito')"
+                style="background:var(--red-hl);color:var(--red);border:1px solid var(--red);flex:1">
+                🛒 Registrar Compra
+              </button>
+              <button class="btn btn-sm" onclick="abrirLancForn('credito')"
+                style="background:var(--green-hl);color:var(--green);border:1px solid var(--green);flex:1">
+                💳 Registrar Pagamento
+              </button>
+            </div>
+            <div id="lanc-forn-form" style="display:none;background:var(--s2);border-radius:var(--rm);padding:.65rem">
+              <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:.4rem" id="lanc-forn-titulo"></div>
+              <div class="form-grid">
+                <div class="fg"><label style="font-size:.72rem">Valor (R$)</label><input id="mov-forn-valor" type="number" min="0" step="0.01" placeholder="0,00"></div>
+                <div class="fg"><label style="font-size:.72rem">Data</label><input id="mov-forn-data" type="date"></div>
+                <div class="fg" style="grid-column:1/-1"><label style="font-size:.72rem">Nº Nota / Ref. / Observação</label><input id="mov-forn-obs" type="text" placeholder="Opcional"></div>
+              </div>
+              <input type="hidden" id="mov-forn-tipo">
+              <div style="display:flex;gap:.4rem;margin-top:.4rem">
+                <button class="btn btn-primary btn-sm" onclick="salvarMovFornecedor()">Confirmar</button>
+                <button class="btn btn-outline btn-sm" onclick="document.getElementById('lanc-forn-form').style.display='none'">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:.5rem;font-size:.75rem;color:var(--muted);background:var(--s2);padding:.6rem .9rem;border-radius:var(--rm)">
+        🔴 <strong>Saldo positivo</strong> = você deve ao fornecedor &nbsp;|&nbsp; 🟢 <strong>Saldo negativo</strong> = fornecedor tem crédito com você
+      </div>
     </div>
 
   </main>
@@ -665,6 +744,15 @@ table{border-collapse:collapse;width:100%}
   </div>
   <div class="fg" style="margin-bottom:.65rem"><label>Observação</label><input id="pag-obs" type="text"></div>
   <div id="pag-saldo-info" style="display:none;background:var(--s2);border-radius:var(--rm);padding:.55rem .75rem;font-size:.8rem;margin-bottom:.5rem">Saldo após: <strong id="pag-saldo-val"></strong></div>
+  <!-- Repasse para fornecedor -->
+  <div style="border:1px solid var(--border);border-radius:var(--rm);padding:.65rem;margin-bottom:.65rem;background:var(--teal-hl)">
+    <div style="font-size:.75rem;font-weight:700;color:var(--teal);margin-bottom:.5rem">🏭 Repassar para Fornecedor (opcional)</div>
+    <div class="form-grid">
+      <div class="fg"><label style="font-size:.72rem">Fornecedor</label><select id="pag-fornecedor-id" style="font-size:.8rem"><option value="">— Nenhum —</option></select></div>
+      <div class="fg"><label style="font-size:.72rem">Valor repassado (R$)</label><input id="pag-fornecedor-valor" type="number" min="0" step="0.01" placeholder="0,00" style="font-size:.8rem"></div>
+    </div>
+    <div style="font-size:.68rem;color:var(--teal)">Pode ser maior que o recebimento — entra como crédito do fornecedor</div>
+  </div>
   <div class="modal-foot">
     <button class="btn btn-outline" onclick="closeModal('modal-pagamento')">Cancelar</button>
     <button class="btn btn-primary" onclick="salvarPagamento()">Confirmar</button>
@@ -708,6 +796,57 @@ table{border-collapse:collapse;width:100%}
   <div class="modal-foot">
     <button class="btn btn-outline" onclick="closeModal('modal-produto')">Cancelar</button>
     <button class="btn btn-primary" onclick="salvarProduto()">Salvar</button>
+  </div>
+</div></div>
+
+<!-- MODAL FORNECEDOR -->
+<div class="overlay" id="modal-fornecedor" onclick="cbk(event,'modal-fornecedor')"><div class="modal" style="max-width:420px">
+  <div class="modal-hdr"><span class="modal-title" id="mFornTit">Novo Fornecedor</span><button class="btn-icon" onclick="closeModal('modal-fornecedor')"><i data-lucide="x"></i></button></div>
+  <input type="hidden" id="forn-id">
+  <div class="form-grid" style="margin-bottom:.65rem">
+    <div class="fg"><label>Nome *</label><input id="forn-nome" type="text" placeholder="Ex: Tecidos XYZ Ltda"></div>
+    <div class="fg"><label>Contato / Telefone</label><input id="forn-contato" type="text" placeholder="Opcional"></div>
+  </div>
+  <div class="fg" style="margin-bottom:.65rem"><label>Observação</label><input id="forn-obs" type="text" placeholder="Opcional"></div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-fornecedor')">Cancelar</button>
+    <button class="btn btn-primary" onclick="salvarFornecedor()">Salvar</button>
+  </div>
+</div></div>
+
+<!-- MODAL EXTRATO FORNECEDOR -->
+<div class="overlay" id="modal-extrato-forn" onclick="cbk(event,'modal-extrato-forn')"><div class="modal" style="max-width:680px">
+  <div class="modal-hdr"><span class="modal-title" id="mExtratoFornTit">Extrato do Fornecedor</span><button class="btn-icon" onclick="closeModal('modal-extrato-forn')"><i data-lucide="x"></i></button></div>
+  <div id="extrato-forn-saldo" style="margin-bottom:.75rem"></div>
+  <div class="mov-timeline" id="extrato-forn-timeline"></div>
+  <div style="margin-top:.75rem;border-top:1px solid var(--div);padding-top:.75rem">
+    <div style="font-size:.8rem;font-weight:700;color:var(--muted);margin-bottom:.6rem">Lançamento Manual</div>
+    <div style="display:flex;gap:.5rem;margin-bottom:.65rem">
+      <button class="btn btn-sm" onclick="abrirLancForn('debito')"
+        style="background:var(--red-hl);color:var(--red);border:1px solid var(--red);flex:1">
+        🛒 Registrar Compra
+      </button>
+      <button class="btn btn-sm" onclick="abrirLancForn('credito')"
+        style="background:var(--green-hl);color:var(--green);border:1px solid var(--green);flex:1">
+        💳 Registrar Pagamento
+      </button>
+    </div>
+    <div id="lanc-forn-form-modal" style="display:none;background:var(--s2);border-radius:var(--rm);padding:.65rem">
+      <div style="font-size:.75rem;font-weight:700;color:var(--muted);margin-bottom:.4rem" id="lanc-forn-titulo-modal"></div>
+      <div class="form-grid">
+        <div class="fg"><label style="font-size:.72rem">Valor (R$)</label><input id="mov-forn-valor-modal" type="number" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fg"><label style="font-size:.72rem">Data</label><input id="mov-forn-data-modal" type="date"></div>
+        <div class="fg" style="grid-column:1/-1"><label style="font-size:.72rem">Nº Nota / Ref. / Observação</label><input id="mov-forn-obs-modal" type="text" placeholder="Opcional"></div>
+      </div>
+      <input type="hidden" id="mov-forn-tipo-modal">
+      <div style="display:flex;gap:.4rem;margin-top:.4rem">
+        <button class="btn btn-primary btn-sm" onclick="salvarMovFornecedor(true)">Confirmar</button>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('lanc-forn-form-modal').style.display='none'">Cancelar</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button class="btn btn-outline" onclick="closeModal('modal-extrato-forn')">Fechar</button>
   </div>
 </div></div>
 
@@ -771,10 +910,17 @@ let bordAtualIds = null;
 let nextLid = 9100;
 let isSaving = false; // Proteção anti-duplo-clique global
 
+// Fornecedores — conta-corrente
+let fornecedores = []; // [{id, nome, contato, obs}]
+let movFornecedores = []; // [{id, fornecedorId, tipo:'credito'/'debito', origem:'venda'/'recebimento'/'manual', origemId, valor, data, obs}]
+
+// IDs excluídos — impede ressurreição na sincronização com Sheets
+let deletedIds = {Cheques:[], Pagamentos:[], ContasLancadas:[]};
+
 // ═══════════════════════════════════════════════════════
 // PERSIST
 // ═══════════════════════════════════════════════════════
-function saveLocal(){localStorage.setItem(SK,JSON.stringify({CLIENTES,limites,cheques,borderos,vendas,pagamentos,produtos,contasFixas,contasLancadas,contasPagamentos,nextLid}));}
+function saveLocal(){localStorage.setItem(SK,JSON.stringify({CLIENTES,limites,cheques,borderos,vendas,pagamentos,produtos,contasFixas,contasLancadas,contasPagamentos,nextLid,fornecedores,movFornecedores,deletedIds}));}
 function loadLocal(){
   try{
     const d=JSON.parse(localStorage.getItem(SK));
@@ -790,6 +936,9 @@ function loadLocal(){
     if(d.contasLancadas)contasLancadas=d.contasLancadas;
     if(d.contasPagamentos)contasPagamentos=d.contasPagamentos;
     if(d.nextLid)nextLid=d.nextLid;
+    if(d.fornecedores)fornecedores=d.fornecedores;
+    if(d.movFornecedores)movFornecedores=d.movFornecedores;
+    if(d.deletedIds)deletedIds={Cheques:[],Pagamentos:[],ContasLancadas:[],...d.deletedIds};
   }catch(e){}
 }
 function nid(){return++nextLid;}
@@ -866,12 +1015,12 @@ async function syncAll(){
       CLIENTES=[...new Set(d.clientes.map(c=>c.nome).filter(Boolean))];
       d.clientes.forEach(c=>{if(c.nome)limites[c.nome]=parseFloat(c.limite)||0;});
     }
-    if(d.cheques&&d.cheques.length)cheques=d.cheques.map(c=>({...c,valor:parseFloat(c.valor)||0,id:parseInt(c.id)||c.id}));
+    if(d.cheques&&d.cheques.length)cheques=d.cheques.map(c=>({...c,valor:parseFloat(c.valor)||0,id:parseInt(c.id)||c.id})).filter(c=>!(deletedIds.Cheques||[]).includes(+c.id));
     if(d.borderos&&d.borderos.length)borderos=d.borderos.map(b=>({...b,id:parseInt(b.id)||b.id,chequeIds:typeof b.chequeIds==='string'?JSON.parse(b.chequeIds||'[]'):b.chequeIds||[]}));
     if(d.vendas&&d.vendas.length)vendas=d.vendas.map(v=>({...v,id:parseInt(v.id)||v.id,total:parseFloat(v.total)||0}));
-    if(d.pagamentos&&d.pagamentos.length)pagamentos=d.pagamentos.map(p=>({...p,id:parseInt(p.id)||p.id,valor:parseFloat(p.valor)||0}));
+    if(d.pagamentos&&d.pagamentos.length)pagamentos=d.pagamentos.map(p=>({...p,id:parseInt(p.id)||p.id,valor:parseFloat(p.valor)||0})).filter(p=>!(deletedIds.Pagamentos||[]).includes(+p.id));
     if(d.contasFixas&&d.contasFixas.length)contasFixas=d.contasFixas.map(c=>({...c,id:parseInt(c.id)||c.id}));
-    if(d.contasLancadas&&d.contasLancadas.length)contasLancadas=d.contasLancadas.map(c=>({...c,id:parseInt(c.id)||c.id}));
+    if(d.contasLancadas&&d.contasLancadas.length)contasLancadas=d.contasLancadas.map(c=>({...c,id:parseInt(c.id)||c.id})).filter(c=>!(deletedIds.ContasLancadas||[]).includes(+c.id));
     if(d.contasPagamentos&&d.contasPagamentos.length)contasPagamentos=d.contasPagamentos.map(c=>({...c,id:parseInt(c.id)||c.id,valor:parseFloat(c.valor)||0}));
     saveLocal();
     IS_ONLINE=true;
@@ -951,7 +1100,7 @@ function renderView(id){
     'entrada-rapida':initEntradaRapida,'bordero-emitir':renderBordEmitir,'bordero-historico':renderBordHistorico,
     'compensacao':renderCompensacao,'cheques-pagos':renderChequesPagos,
     'contas-pagar':initContasPagar,'vendas-historico':initVendasHistorico,'caixa-dia':initCaixaDia,'extrato':initExtrato,'relatorio':initRelatorio,
-    'clientes':renderClientes,'produtos':renderProdutos
+    'clientes':renderClientes,'produtos':renderProdutos,'fornecedores':renderFornecedores
   };
   if(m[id])m[id]();
 }
@@ -1015,7 +1164,7 @@ function renderPainel(){
 let itens=[],formasSel=[];
 function initNovaVenda(){
   const s=document.getElementById('v-cliente');s.innerHTML='<option value="">Selecione...</option>';
-  CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  [...CLIENTES].sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(c=>s.innerHTML+=`<option>${c}</option>`);
   document.getElementById('v-data').value=today();
   if(!itens.length)itens=[{produto:'',qtd:'',preco:''}];
   formasSel=[];renderItens();renderFormas();calcTotal();
@@ -1039,25 +1188,83 @@ function removeItem(i){if(itens.length>1){itens.splice(i,1);renderItens();calcTo
 function calcTotal(){
   const t=itens.reduce((s,i)=>s+(parseFloat(i.qtd)||0)*(parseFloat(i.preco)||0),0);
   document.getElementById('v-total').textContent=fmt(t);
-  renderFormasValores(t);verificaCreditoVenda(t);return t;
+  renderFormasValores(t);
+  verificaCreditoVenda(t);return t;
 }
-function toggleForma(f,el){
-  const idx=formasSel.findIndex(x=>x.forma===f);
-  if(idx>=0){formasSel.splice(idx,1);el.classList.remove('sel');}else{formasSel.push({forma:f,valor:''});el.classList.add('sel');}
+// Atualiza só os spans "Falta/Excede" sem re-renderizar (chamado pelo uv ao digitar valor)
+function atualizarRestas(){
+  const t=itens.reduce((s,i)=>s+(parseFloat(i.qtd)||0)*(parseFloat(i.preco)||0),0);
+  document.getElementById('v-total').textContent=fmt(t);
+  verificaCreditoVenda(t);
+  formasSel.forEach((_,j)=>{
+    const resto=t-formasSel.filter((_,k)=>k!==j).reduce((s,x)=>s+(parseFloat(x.valor)||0),0);
+    const sp=document.getElementById('resta-'+j);
+    if(sp){sp.className='resta '+(resto>=0?'ok':'err');sp.textContent=resto>=0?'Falta: '+fmt(resto):'Excede';}
+  });
+}
+function toggleForma(f){
+  formasSel.push({forma:f,valor:'',fornecedorId:'',fornecedorValor:''});
   const t=calcTotal();
   document.getElementById('vencimento-area').style.display=formasSel.some(x=>x.forma==='prazo'||x.forma==='cheque')?'block':'none';
 }
-function renderFormas(){document.querySelectorAll('.forma-card').forEach(c=>c.classList.toggle('sel',formasSel.some(x=>x.forma===c.dataset.f)));document.getElementById('vencimento-area').style.display='none';document.getElementById('formas-valores').innerHTML='';}
+function removerForma(i){
+  formasSel.splice(i,1);
+  const t=calcTotal();
+  document.getElementById('vencimento-area').style.display=formasSel.some(x=>x.forma==='prazo'||x.forma==='cheque')?'block':'none';
+}
+function renderFormas(){document.getElementById('vencimento-area').style.display='none';document.getElementById('formas-valores').innerHTML='';}
 function renderFormasValores(total){
   const el=document.getElementById('formas-valores');
   if(!formasSel.length){el.innerHTML='';return;}
   if(formasSel.length===1&&!formasSel[0].valor)formasSel[0].valor=total.toFixed(2);
-  el.innerHTML=formasSel.map((f,i)=>{
+  const fornOpts=fornecedores.length
+    ? '<option value="">— Nenhum —</option>'+fornecedores.map(f=>`<option value="${f.id}">${f.nome}</option>`).join('')
+    : '<option value="">— Cadastre fornecedores primeiro —</option>';
+  // Linhas das formas (sem painel fornecedor inline)
+  const linhas=formasSel.map((f,i)=>{
     const resto=total-formasSel.filter((_,j)=>j!==i).reduce((s,x)=>s+(parseFloat(x.valor)||0),0);
-    return`<div class="forma-row"><label>${FL[f.forma]||f.forma}</label><input type="number" value="${f.valor}" min="0" step="0.01" placeholder="0,00" oninput="uv(${i},this.value)"><span class="resta ${resto>=0?'ok':'err'}">${resto>=0?'Falta: '+fmt(resto):'Excede'}</span></div>`;
+    const fornSel=f.fornecedorId?fornOpts.replace(`value="${f.fornecedorId}"`,`value="${f.fornecedorId}" selected`):fornOpts;
+    return`<div class="forma-row" style="align-items:center;gap:.5rem;flex-wrap:nowrap">
+      <label style="min-width:72px;flex-shrink:0">${FL[f.forma]||f.forma}</label>
+      <input type="number" id="fv-inp-${i}" value="${f.valor}" min="0" step="0.01" placeholder="0,00"
+        oninput="uv(${i},this.value)" style="width:130px;flex-shrink:0">
+      <span id="resta-${i}" class="resta ${resto>=0?'ok':'err'}" style="flex-shrink:0">${resto>=0?'Falta: '+fmt(resto):'Excede'}</span>
+      <button type="button" onclick="toggleFornPanel(${i})"
+        style="flex-shrink:0;background:${f.fornecedorId?'var(--teal)':'var(--teal-hl)'};color:${f.fornecedorId?'#fff':'var(--teal)'};border:1px solid var(--teal);border-radius:var(--rm);padding:.22rem .55rem;font-size:.72rem;cursor:pointer">
+        🏭 ${f.fornecedorId?(fornecedores.find(x=>x.id==f.fornecedorId)?.nome||'Fornecedor'):'Fornecedor'}
+      </button>
+      <button type="button" onclick="removerForma(${i})"
+        style="flex-shrink:0;background:var(--red-hl);color:var(--red);border:1px solid var(--red);border-radius:var(--rm);padding:.22rem .5rem;font-size:.72rem;cursor:pointer">✕</button>
+    </div>
+    <div id="forn-panel-${i}" style="display:${f.fornecedorId||f._fornOpen?'flex':'none'};flex-wrap:wrap;align-items:center;gap:.5rem;padding:.5rem .75rem;margin:.1rem 0 .4rem 0;background:var(--teal-hl);border-radius:var(--rm);border:1px solid var(--teal)">
+      <span style="font-size:.72rem;color:var(--teal);font-weight:700;flex-basis:100%">🏭 Repassar para fornecedor</span>
+      <label style="font-size:.72rem;color:var(--muted);flex-shrink:0">Fornecedor:</label>
+      <select onchange="uvForn(${i},'fornecedorId',this.value);renderFormasValores(${total})"
+        style="font-size:.8rem;padding:.28rem .45rem;border-radius:var(--rm);border:1px solid var(--border);background:var(--surface);min-width:160px">${fornSel}</select>
+      <label style="font-size:.72rem;color:var(--muted);flex-shrink:0">Valor (R$):</label>
+      <input type="number" value="${f.fornecedorValor||f.valor||''}" min="0" step="0.01" placeholder="0,00"
+        oninput="uvForn(${i},'fornecedorValor',this.value)"
+        style="width:120px;font-size:.8rem;padding:.28rem .45rem;border-radius:var(--rm);border:1px solid var(--border)">
+      <span style="font-size:.68rem;color:var(--teal)">(pode ser maior que o valor da forma)</span>
+      <button type="button" onclick="uvForn(${i},'fornecedorId','');uvForn(${i},'fornecedorValor','');renderFormasValores(${total})"
+        style="font-size:.7rem;color:var(--muted);background:none;border:none;cursor:pointer;margin-left:auto">✕ Remover repasse</button>
+    </div>`;
   }).join('');
+  el.innerHTML=linhas;
 }
-function uv(i,v){formasSel[i].valor=v;renderFormasValores(itens.reduce((s,x)=>s+(parseFloat(x.qtd)||0)*(parseFloat(x.preco)||0),0));}
+function toggleFornPanel(i){
+  const panel=document.getElementById(`forn-panel-${i}`);
+  if(!panel)return;
+  const vis=panel.style.display==='flex';
+  panel.style.display=vis?'none':'flex';
+  if(vis){formasSel[i].fornecedorId='';formasSel[i].fornecedorValor='';}
+}
+function toggleFornecedorRow(i){toggleFornPanel(i);}// alias legado
+function uvForn(i,campo,v){formasSel[i][campo]=v;}
+function uv(i,v){
+  formasSel[i].valor=v;
+  atualizarRestas();
+}
 function verificaCreditoVenda(total){
   const cli=document.getElementById('v-cliente').value;
   const temP=formasSel.some(f=>f.forma==='prazo'||f.forma==='cheque');
@@ -1082,7 +1289,14 @@ async function salvarVenda(){
   if(btnSalvar){btnSalvar.disabled=true;btnSalvar.textContent='Salvando...';}
   try{
     const obj={id:nid(),cliente:cli,data,obs:document.getElementById('v-obs').value,ref:document.getElementById('v-ref').value,total,vencimento:document.getElementById('v-vencimento')?.value||'',formas:JSON.stringify(formasSel),itens:itF};
-    vendas.push(obj);saveLocal();
+    vendas.push(obj);
+    // Criar movimentações de fornecedor vinculadas
+    formasSel.forEach(f=>{
+      if(f.fornecedorId){
+        movFornecedores.push({id:nid(),fornecedorId:f.fornecedorId,tipo:'credito',origem:'venda',origemId:obj.id,valor:parseFloat(f.fornecedorValor)||parseFloat(f.valor)||0,data,obs:`Repasse de venda ${obj.ref||'#'+obj.id} — cliente ${cli} — ${FL[f.forma]||f.forma}`});
+      }
+    });
+    saveLocal();
     if(GAS_URL)await gas('saveVenda',obj);
     toast('✅ Venda registrada!','success');
     setTimeout(()=>abrirRomaneioAposSalvar(obj.id),300);
@@ -1098,7 +1312,10 @@ async function salvarVenda(){
 // ═══════════════════════════════════════════════════════
 function renderRecebimentos(){
   const s=document.getElementById('pag-cli');s.innerHTML='<option value="">Selecione...</option>';
-  CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  [...CLIENTES].sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  // Popular select de fornecedores no modal
+  const sf=document.getElementById('pag-fornecedor-id');
+  if(sf){sf.innerHTML='<option value="">— Nenhum —</option>'+fornecedores.map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');}
   document.getElementById('pag-data').value=today();
   const tbody=document.getElementById('tbl-pags');
   if(!pagamentos.length){tbody.innerHTML='<tr class="empty-r"><td colspan="6">Nenhum recebimento.</td></tr>';return;}
@@ -1118,11 +1335,14 @@ function renderRecebimentos(){
 function excluirPagamento(id){
   if(!confirm('Excluir este recebimento?'))return;
   pagamentos=pagamentos.filter(p=>p.id!==id);
+  // Remove movimentações de fornecedor vinculadas
+  movFornecedores=movFornecedores.filter(m=>!(m.origem==='recebimento'&&m.origemId===id));
+  if(!deletedIds.Pagamentos)deletedIds.Pagamentos=[];
+  deletedIds.Pagamentos.push(+id);
   saveLocal();
+  if(GAS_URL)gas('deleteRow',{aba:'Pagamentos',id});
   renderRecebimentos();
   toast('Recebimento excluído.','info');
-  // Nota: exclusão não sincroniza com Sheets automaticamente
-  // Para excluir da planilha, apague manualmente na aba Pagamentos
 }
 function updSaldoPreview(){
   const cli=document.getElementById('pag-cli').value;
@@ -1140,7 +1360,14 @@ async function salvarPagamento(){
   if(btnConf){btnConf.disabled=true;btnConf.textContent='Salvando...';}
   try{
     const obj={id:nid(),cliente:cli,valor,data,forma:document.getElementById('pag-forma').value,obs:document.getElementById('pag-obs').value};
-    pagamentos.push(obj);saveLocal();
+    pagamentos.push(obj);
+    // Repasse de fornecedor
+    const fornId=document.getElementById('pag-fornecedor-id')?.value;
+    const fornVal=parseFloat(document.getElementById('pag-fornecedor-valor')?.value)||0;
+    if(fornId&&fornVal>0){
+      movFornecedores.push({id:nid(),fornecedorId:fornId,tipo:'credito',origem:'recebimento',origemId:obj.id,valor:fornVal,data,obs:`Repasse de recebimento — cliente ${cli}`});
+    }
+    saveLocal();
     if(GAS_URL)await gas('savePagamento',obj);
     closeModal('modal-pagamento');renderRecebimentos();toast('Recebimento registrado!','success');
   }finally{
@@ -1154,7 +1381,7 @@ async function salvarPagamento(){
 // ═══════════════════════════════════════════════════════
 function renderChequesManosInit(){
   const s=document.getElementById('fcli');s.innerHTML='<option value="">Todos os clientes</option>';
-  CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  [...CLIENTES].sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(c=>s.innerHTML+=`<option>${c}</option>`);
   renderChequesManos();
 }
 function renderChequesManos(){
@@ -1623,7 +1850,10 @@ function excluirCheque(id){
   if(!confirm(`Excluir cheque de ${fmt(c.valor)} — ${c.titular||'s/titular'}?\n\nEsta ação não pode ser desfeita.`))return;
   cheques=cheques.filter(x=>x.id!==id);
   selectedChIds.delete(id);
+  if(!deletedIds.Cheques)deletedIds.Cheques=[];
+  deletedIds.Cheques.push(+id);
   saveLocal();
+  if(GAS_URL)gas('deleteRow',{aba:'Cheques',id});
   renderChequesManosInit();
   updateNavBadges();
   toast('Cheque excluído.','info');
@@ -1866,10 +2096,15 @@ function renderExtrato(){
 // RELATÓRIO
 // ═══════════════════════════════════════════════════════
 function initRelatorio(){
-  const s=document.getElementById('rel-cli');s.innerHTML='<option value="">Todos</option>';CLIENTES.forEach(c=>s.innerHTML+=`<option>${c}</option>`);
-  const d=new Date();const m=String(d.getMonth()+1).padStart(2,'0');
-  document.getElementById('rel-de').value=`${d.getFullYear()}-${m}-01`;
-  document.getElementById('rel-ate').value=today();
+  const s=document.getElementById('rel-cli');s.innerHTML='<option value="">Todos</option>';
+  [...CLIENTES].sort((a,b)=>a.localeCompare(b,'pt-BR')).forEach(c=>s.innerHTML+=`<option>${c}</option>`);
+  const sf=document.getElementById('rel-forn');
+  if(sf){sf.innerHTML='<option value="">Selecione...</option>'+[...fornecedores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');}
+  const hoje=today();
+  if(!document.getElementById('rel-de').value)document.getElementById('rel-de').value=hoje.slice(0,8)+'01';
+  if(!document.getElementById('rel-ate').value)document.getElementById('rel-ate').value=hoje;
+  if(!document.getElementById('rel-forn-de').value)document.getElementById('rel-forn-de').value=hoje.slice(0,8)+'01';
+  if(!document.getElementById('rel-forn-ate').value)document.getElementById('rel-forn-ate').value=hoje;
 }
 let _rr=[];
 function gerarRelatorio(){
@@ -1907,7 +2142,7 @@ function exportCSV(){
 // ═══════════════════════════════════════════════════════
 function renderClientes(){
   const tbody=document.getElementById('tbl-clientes');
-  tbody.innerHTML=CLIENTES.map(cl=>{
+  tbody.innerHTML=[...CLIENTES].sort((a,b)=>a.localeCompare(b,'pt-BR')).map(cl=>{
     const lim=limites[cl]||0;const sv=getSaldoVendas(cl);const cp=getChequePend(cl);const tot=sv+cp;
     const disp=lim-tot;const pct=lim>0?tot/lim:null;
     const st=lim===0?'<span class="chip">S/ limite</span>':pct>1?'<span class="pill p-venc">⛔ Excedido</span>':pct>0.8?'<span class="pill p-pend">⚠ Atenção</span>':'<span class="pill p-pago">✅ OK</span>';
@@ -2653,7 +2888,11 @@ function excluirConta(id){
   if(!confirm('Excluir esta conta?'))return;
   contasLancadas=contasLancadas.filter(x=>x.id!==id);
   contasPagamentos=contasPagamentos.filter(p=>p.contaId!==id);
-  saveLocal();renderContasPagar();toast('Conta excluída.','info');
+  if(!deletedIds.ContasLancadas)deletedIds.ContasLancadas=[];
+  deletedIds.ContasLancadas.push(+id);
+  saveLocal();
+  if(GAS_URL)gas('deleteRow',{aba:'ContasLancadas',id});
+  renderContasPagar();toast('Conta excluída.','info');
 }
 
 // ── Cadastro de conta fixa ────────────────────────────
@@ -2958,6 +3197,259 @@ function printCaixa(){
   const c=document.getElementById('caixa-print-area');if(!c)return;
   const pa=document.getElementById('printArea');pa.innerHTML=c.innerHTML;window.print();
   setTimeout(()=>pa.innerHTML='',2000);
+}
+
+// ═══════════════════════════════════════════════════════
+// FORNECEDORES — Conta-Corrente
+// ═══════════════════════════════════════════════════════
+function getSaldoFornecedor(fornId){
+  // saldo positivo = você deve ao fornecedor
+  // saldo negativo = fornecedor tem crédito com você
+  return movFornecedores.filter(m=>m.fornecedorId==fornId).reduce((s,m)=>{
+    return s+(m.tipo==='debito'?+(+m.valor||0):-(+m.valor||0));
+  },0);
+}
+function renderFornecedores(){
+  const el=document.getElementById('forn-cards');
+  if(!el)return;
+  if(!fornecedores.length){
+    el.innerHTML='<div style="color:var(--faint);font-size:.85rem;padding:1rem">Nenhum fornecedor cadastrado. Clique em "Novo Fornecedor" para começar.</div>';
+    return;
+  }
+  el.innerHTML=[...fornecedores].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(f=>{
+    const saldo=getSaldoFornecedor(f.id);
+    const saldoClass=saldo>0?'forn-saldo-pos':saldo<0?'forn-saldo-neg':'forn-saldo-zero';
+    const sit=saldo>0?`<span class="pill p-venc">Você deve ${fmt(saldo)}</span>`:saldo<0?`<span class="pill p-pago">Fornecedor te deve ${fmt(Math.abs(saldo))}</span>`:'<span class="chip">Zerado</span>';
+    const movCount=movFornecedores.filter(m=>m.fornecedorId==f.id).length;
+    return`<div class="card" style="cursor:pointer" onclick="abrirExtratoFornecedor(${f.id})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div class="fw7" style="font-size:.95rem">${f.nome}</div>
+          ${f.contato?`<div style="font-size:.75rem;color:var(--muted)">${f.contato}</div>`:''}
+        </div>
+        <div style="display:flex;gap:.3rem">
+          <button class="btn-icon btn-sm" onclick="event.stopPropagation();editarFornecedor(${f.id})" title="Editar"><i data-lucide="pencil" style="width:11px;height:11px"></i></button>
+          <button class="btn-icon btn-sm" onclick="event.stopPropagation();excluirFornecedor(${f.id})" style="color:var(--red)" title="Excluir"><i data-lucide="trash-2" style="width:11px;height:11px"></i></button>
+        </div>
+      </div>
+      <div style="margin-top:.6rem;display:flex;align-items:center;gap:.75rem">
+        <span class="mono fw7 ${saldoClass}" style="font-size:1.1rem">${fmt(Math.abs(saldo))}</span>
+        ${sit}
+      </div>
+      <div style="margin-top:.4rem;font-size:.72rem;color:var(--muted)">${movCount} movimentaç${movCount===1?'ão':'ões'} · clique para ver extrato</div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+  // Badge no nav
+  const nb=document.getElementById('nb-fornecedores');
+  if(nb){const dev=fornecedores.filter(f=>getSaldoFornecedor(f.id)>0).length;nb.textContent=dev||'';nb.style.display=dev?'inline':'none';}
+}
+function fecharExtratoInline(){
+  document.getElementById('forn-extrato-inline').style.display='none';
+  _extratoFornId=null;
+}
+function abrirNovoFornecedor(){
+  document.getElementById('forn-id').value='';
+  document.getElementById('forn-nome').value='';
+  document.getElementById('forn-contato').value='';
+  document.getElementById('forn-obs').value='';
+  document.getElementById('mFornTit').textContent='Novo Fornecedor';
+  openModal('modal-fornecedor');
+}
+function editarFornecedor(id){
+  const f=fornecedores.find(x=>x.id===id);if(!f)return;
+  document.getElementById('forn-id').value=f.id;
+  document.getElementById('forn-nome').value=f.nome;
+  document.getElementById('forn-contato').value=f.contato||'';
+  document.getElementById('forn-obs').value=f.obs||'';
+  document.getElementById('mFornTit').textContent='Editar Fornecedor';
+  openModal('modal-fornecedor');
+}
+function salvarFornecedor(){
+  const nome=document.getElementById('forn-nome').value.trim();
+  if(!nome){toast('Informe o nome do fornecedor.','warn');return;}
+  const id=parseInt(document.getElementById('forn-id').value)||null;
+  const obj={id:id||nid(),nome,contato:document.getElementById('forn-contato').value.trim(),obs:document.getElementById('forn-obs').value.trim()};
+  if(id){const i=fornecedores.findIndex(f=>f.id===id);if(i>=0)fornecedores[i]=obj;}
+  else fornecedores.push(obj);
+  saveLocal();closeModal('modal-fornecedor');renderFornecedores();
+  // Atualizar selects de fornecedores no modal de recebimento
+  const sf=document.getElementById('pag-fornecedor-id');
+  if(sf){sf.innerHTML='<option value="">— Nenhum —</option>'+fornecedores.map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');}
+  toast('Fornecedor salvo!','success');
+}
+function excluirFornecedor(id){
+  const f=fornecedores.find(x=>x.id===id);if(!f)return;
+  const mov=movFornecedores.filter(m=>m.fornecedorId==id).length;
+  if(mov>0&&!confirm(`"${f.nome}" tem ${mov} movimentações. Excluir mesmo assim?\nAs movimentações também serão removidas.`))return;
+  if(mov===0&&!confirm(`Excluir fornecedor "${f.nome}"?`))return;
+  fornecedores=fornecedores.filter(x=>x.id!==id);
+  movFornecedores=movFornecedores.filter(m=>m.fornecedorId!=id);
+  saveLocal();renderFornecedores();toast('Fornecedor excluído.','info');
+}
+let _extratoFornId=null;
+function abrirExtratoFornecedor(id){
+  const f=fornecedores.find(x=>x.id===id);if(!f)return;
+  _extratoFornId=id;
+  // Se estiver na tela de fornecedores, usa extrato inline
+  const inline=document.getElementById('forn-extrato-inline');
+  if(inline){
+    document.getElementById('forn-extrato-titulo').textContent='📋 Extrato — '+f.nome;
+    document.getElementById('mov-forn-data').value=today();
+    document.getElementById('mov-forn-valor').value='';
+    document.getElementById('mov-forn-obs').value='';
+    inline.style.display='block';
+    renderExtratoFornecedor();
+    inline.scrollIntoView({behavior:'smooth',block:'start'});
+    return;
+  }
+  // Fallback: modal
+  document.getElementById('mExtratoFornTit').textContent='Extrato — '+f.nome;
+  document.getElementById('mov-forn-data').value=today();
+  document.getElementById('mov-forn-valor').value='';
+  document.getElementById('mov-forn-obs').value='';
+  renderExtratoFornecedor();
+  openModal('modal-extrato-forn');
+}
+function renderExtratoFornecedor(){
+  const id=_extratoFornId;if(!id)return;
+  const movs=[...movFornecedores.filter(m=>m.fornecedorId==id)].sort((a,b)=>a.data.localeCompare(b.data));
+  let saldoAcc=0;
+  const saldoFinal=getSaldoFornecedor(id);
+  const saldoEl=document.getElementById('extrato-forn-saldo');
+  const saldoClass=saldoFinal>0?'forn-saldo-pos':saldoFinal<0?'forn-saldo-neg':'forn-saldo-zero';
+  const saldoDesc=saldoFinal>0?'⚠ Você deve ao fornecedor':saldoFinal<0?'✅ Fornecedor tem crédito com você':'Conta zerada';
+  saldoEl.innerHTML=`<div style="display:flex;align-items:center;gap:1rem;padding:.65rem .9rem;border-radius:var(--rm);background:var(--s2)">
+    <div><div style="font-size:.72rem;color:var(--muted)">Saldo atual</div><div class="mono fw7 ${saldoClass}" style="font-size:1.2rem">${fmt(Math.abs(saldoFinal))}</div></div>
+    <div style="font-size:.78rem;color:var(--muted)">${saldoDesc}</div>
+  </div>`;
+  const tlEl=document.getElementById('extrato-forn-timeline');
+  if(!movs.length){tlEl.innerHTML='<p style="color:var(--faint);font-size:.8rem;padding:.5rem">Nenhuma movimentação ainda. Use os botões abaixo para registrar compras ou pagamentos.</p>';return;}
+  tlEl.innerHTML=movs.map(m=>{
+    // debito = compra (saldo sobe), credito = pagamento/repasse (saldo cai)
+    saldoAcc+=(m.tipo==='debito'?+(+m.valor||0):-(+m.valor||0));
+    const origemLabel={venda:'📦 Repasse de Venda',recebimento:'💰 Repasse de Recebimento',manual_compra:'🛒 Compra',manual_pagamento:'💳 Pagamento',manual:'✏️ Manual'}[m.origem]||m.origem;
+    const isCompra=m.tipo==='debito';
+    return`<div class="mov-item">
+      <div class="mov-icon">${isCompra?'🔴':'🟢'}</div>
+      <div class="mov-body">
+        <div style="font-weight:600">${origemLabel}</div>
+        <div style="color:var(--muted);font-size:.72rem">${fmtD(m.data)}${m.obs?' — '+m.obs:''}</div>
+      </div>
+      <div>
+        <div class="mov-val ${isCompra?'cred':'deb'}">${fmt(m.valor)}</div>
+        <div style="font-size:.68rem;color:var(--muted);text-align:right">Saldo: ${fmt(Math.abs(saldoAcc))}</div>
+      </div>
+      <button onclick="excluirMovForn(${m.id})" style="background:none;color:var(--faint);border:none;cursor:pointer;font-size:.8rem;padding:.1rem .3rem" title="Excluir">✕</button>
+    </div>`;
+  }).join('');
+}
+function abrirLancForn(tipo){
+  // Detecta se está no inline ou modal
+  const isInline=document.getElementById('forn-extrato-inline')?.style.display!=='none';
+  const formId=isInline?'lanc-forn-form':'lanc-forn-form-modal';
+  const tituloId=isInline?'lanc-forn-titulo':'lanc-forn-titulo-modal';
+  const tipoId=isInline?'mov-forn-tipo':'mov-forn-tipo-modal';
+  const dataId=isInline?'mov-forn-data':'mov-forn-data-modal';
+  const form=document.getElementById(formId);
+  if(!form)return;
+  form.style.display='block';
+  document.getElementById(tituloId).textContent=tipo==='debito'?'🛒 Registrar Compra':'💳 Registrar Pagamento';
+  document.getElementById(tipoId).value=tipo;
+  document.getElementById(dataId).value=today();
+}
+function salvarMovFornecedor(isModal=false){
+  const id=_extratoFornId;if(!id)return;
+  const sfx=isModal?'-modal':'';
+  const tipo=document.getElementById('mov-forn-tipo'+sfx)?.value||document.getElementById('mov-forn-tipo')?.value;
+  const valor=parseFloat(document.getElementById('mov-forn-valor'+sfx)?.value||document.getElementById('mov-forn-valor')?.value);
+  const data=document.getElementById('mov-forn-data'+sfx)?.value||document.getElementById('mov-forn-data')?.value;
+  const obs=document.getElementById('mov-forn-obs'+sfx)?.value||document.getElementById('mov-forn-obs')?.value||'';
+  if(!tipo||!valor||!data){toast('Preencha valor e data.','warn');return;}
+  const origemLabel=tipo==='debito'?'manual_compra':'manual_pagamento';
+  movFornecedores.push({id:nid(),fornecedorId:id,tipo,origem:origemLabel,origemId:null,valor,data,obs});
+  saveLocal();
+  // Limpar e fechar form
+  ['mov-forn-valor','mov-forn-obs','mov-forn-valor-modal','mov-forn-obs-modal'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  const f1=document.getElementById('lanc-forn-form');if(f1)f1.style.display='none';
+  const f2=document.getElementById('lanc-forn-form-modal');if(f2)f2.style.display='none';
+  renderExtratoFornecedor();renderFornecedores();
+  toast(tipo==='debito'?'Compra registrada!':'Pagamento registrado!','success');
+}
+function excluirMovForn(id){
+  if(!confirm('Excluir este lançamento?'))return;
+  movFornecedores=movFornecedores.filter(m=>m.id!==id);
+  saveLocal();renderExtratoFornecedor();renderFornecedores();
+  toast('Lançamento excluído.','info');
+}
+
+// ═══════════════════════════════════════════════════════
+// RELATÓRIO FORNECEDOR — Conta-Corrente por Período
+// ═══════════════════════════════════════════════════════
+let _relFornData=[];
+function gerarRelatorioFornecedor(){
+  const fornId=document.getElementById('rel-forn').value;
+  const de=document.getElementById('rel-forn-de').value;
+  const ate=document.getElementById('rel-forn-ate').value;
+  const el=document.getElementById('rel-forn-resultado');
+  if(!fornId){toast('Selecione um fornecedor.','warn');return;}
+  const f=fornecedores.find(x=>x.id==fornId);if(!f)return;
+  // Saldo anterior ao período
+  const movsTodos=[...movFornecedores.filter(m=>m.fornecedorId==fornId)].sort((a,b)=>a.data.localeCompare(b.data));
+  const saldoAnterior=movsTodos.filter(m=>de&&m.data<de).reduce((s,m)=>s+(m.tipo==='debito'?+(+m.valor||0):-(+m.valor||0)),0);
+  // Movs do período
+  const movs=movsTodos.filter(m=>(!de||m.data>=de)&&(!ate||m.data<=ate));
+  _relFornData=movs;
+  const totalCompras=movs.filter(m=>m.tipo==='debito').reduce((s,m)=>s+(+m.valor||0),0);
+  const totalPagos=movs.filter(m=>m.tipo==='credito').reduce((s,m)=>s+(+m.valor||0),0);
+  const saldoFinal=saldoAnterior+totalCompras-totalPagos;
+  const origemLabel=o=>({venda:'Repasse Venda',recebimento:'Repasse Recebimento',manual_compra:'Compra',manual_pagamento:'Pagamento',manual:'Manual'}[o]||o);
+  let saldoAcc=saldoAnterior;
+  const rows=movs.map(m=>{
+    saldoAcc+=(m.tipo==='debito'?+(+m.valor||0):-(+m.valor||0));
+    const isCompra=m.tipo==='debito';
+    return`<tr>
+      <td>${fmtD(m.data)}</td>
+      <td><span class="pill ${isCompra?'p-venc':'p-pago'}">${origemLabel(m.origem)}</span></td>
+      <td>${m.obs||'—'}</td>
+      <td class="tr-r mono ${isCompra?'':''}">+${isCompra?fmt(m.valor):'—'}</td>
+      <td class="tr-r mono">${!isCompra?fmt(m.valor):'—'}</td>
+      <td class="tr-r mono fw7 ${saldoAcc>0?'forn-saldo-pos':saldoAcc<0?'forn-saldo-neg':'forn-saldo-zero'}">${fmt(Math.abs(saldoAcc))}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML=`<div class="card" style="margin-top:.75rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+      <div class="card-title" style="margin:0">🏭 ${f.nome}</div>
+      <div style="font-size:.75rem;color:var(--muted)">${de?fmtD(de):''} ${de&&ate?'→':''} ${ate?fmtD(ate):''}</div>
+    </div>
+    <div class="kpi-grid" style="margin-bottom:.75rem">
+      <div class="kpi w"><div class="kpi-label">Saldo Anterior</div><div class="kpi-val mono">${fmt(Math.abs(saldoAnterior))}</div></div>
+      <div class="kpi r"><div class="kpi-label">Total Compras</div><div class="kpi-val mono">${fmt(totalCompras)}</div></div>
+      <div class="kpi g"><div class="kpi-label">Total Pago/Repassado</div><div class="kpi-val mono">${fmt(totalPagos)}</div></div>
+      <div class="kpi ${saldoFinal>0?'r':'g'}"><div class="kpi-label">Saldo Final</div><div class="kpi-val mono fw7">${fmt(Math.abs(saldoFinal))}</div></div>
+    </div>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th class="tr-r">Compra (débito)</th><th class="tr-r">Pago (crédito)</th><th class="tr-r">Saldo</th></tr></thead>
+      <tbody>${rows||'<tr class="empty-r"><td colspan="6">Sem movimentações no período.</td></tr>'}</tbody>
+    </table></div>
+  </div>`;
+}
+function exportCSVFornecedor(){
+  if(!_relFornData.length){toast('Gere o relatório primeiro.','warn');return;}
+  const fornId=document.getElementById('rel-forn').value;
+  const f=fornecedores.find(x=>x.id==fornId);
+  const origemLabel=o=>({venda:'Repasse Venda',recebimento:'Repasse Recebimento',manual_compra:'Compra',manual_pagamento:'Pagamento',manual:'Manual'}[o]||o);
+  const header='Data;Tipo;Descrição;Compra (débito);Pago (crédito)';
+  const rows=_relFornData.map(m=>[
+    fmtD(m.data),
+    origemLabel(m.origem),
+    m.obs||'',
+    m.tipo==='debito'?String(m.valor).replace('.',','):'',
+    m.tipo==='credito'?String(m.valor).replace('.',','):''
+  ].join(';'));
+  const csv='\uFEFF'+header+'\n'+rows.join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`fornecedor_${f?f.nome.replace(/\s/g,'_'):'extrato'}.csv`;a.click();
 }
 
 // ═══════════════════════════════════════════════════════
